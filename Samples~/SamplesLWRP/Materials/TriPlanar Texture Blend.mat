@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: TriPlanar Texture Blend
+  m_Shader: {fileID: 4800000, guid: 1ae9f1f8d976a7047943886b1bb4ac93, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 5
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseNormal:
+        m_Texture: {fileID: 2800000, guid: 0478ab05be1dd8240859f2143fde9977, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Blend:
+        m_Texture: {fileID: 2800000, guid: d30928edf2862a3429721b69f756eb35, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BlendNormal:
+        m_Texture: {fileID: 2800000, guid: 79a8a302ef4fba441ba8e662d861deb2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 932d06fcfc6846f4587e582dbf9cee67, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Noise:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture1:
+        m_Texture: {fileID: 2800000, guid: 932d06fcfc6846f4587e582dbf9cee67, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2:
+        m_Texture: {fileID: 2800000, guid: 0478ab05be1dd8240859f2143fde9977, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_4D8F0DA5_Out:
+        m_Texture: {fileID: 2800000, guid: 00a59b5d269778b4b90b8b07e0755bf2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_C5CFC0DA_Out:
+        m_Texture: {fileID: 2800000, guid: 04fca2a5df501fa4f802e822060cc8ae, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_D0AC464B_Out:
+        m_Texture: {fileID: 2800000, guid: 3cca9b6929fb7904f991a2834cdd331e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_F6E0C5A7_Out:
+        m_Texture: {fileID: 2800000, guid: cedb91bd5226fb047b7789876bc88817, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture3:
+        m_Texture: {fileID: 2800000, guid: d30928edf2862a3429721b69f756eb35, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture4:
+        m_Texture: {fileID: 2800000, guid: 79a8a302ef4fba441ba8e662d861deb2, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _FillStrength: 1
+    - _Gloss: 0.265
+    - _Metallic: 0.13
+    m_Colors: []

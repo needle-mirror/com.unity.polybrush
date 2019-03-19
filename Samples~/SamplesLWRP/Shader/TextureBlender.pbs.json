@@ -1,0 +1,125 @@
+{
+    "shaderPath": "Polybrush/Lightweight Render Pipeline/TextureBlender",
+    "attributes": [
+        {
+            "channel": 4,
+            "index": 0,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_MainTex",
+            "mask": 0
+        },
+        {
+            "channel": 4,
+            "index": 1,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture1",
+            "mask": 0
+        },
+        {
+            "channel": 4,
+            "index": 2,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture2",
+            "mask": 0
+        },
+        {
+            "channel": 4,
+            "index": 3,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture3",
+            "mask": 0
+        },
+        {
+            "channel": 32,
+            "index": 0,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture4",
+            "mask": 0
+        },
+        {
+            "channel": 64,
+            "index": 1,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture5",
+            "mask": 0
+        },
+        {
+            "channel": 64,
+            "index": 2,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture6",
+            "mask": 0
+        },
+        {
+            "channel": 64,
+            "index": 3,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture7",
+            "mask": 0
+        },
+        {
+            "channel": 64,
+            "index": 0,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture8",
+            "mask": 0
+        },
+        {
+            "channel": 128,
+            "index": 1,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture9",
+            "mask": 0
+        },
+        {
+            "channel": 128,
+            "index": 2,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture10",
+            "mask": 0
+        },
+        {
+            "channel": 128,
+            "index": 3,
+            "range": {
+                "x": 0.0,
+                "y": 1.0
+            },
+            "propertyTarget": "_Texture11",
+            "mask": 0
+        }
+    ]
+}

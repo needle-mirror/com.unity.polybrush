@@ -1,0 +1,5 @@
+{
+    "displayName":"Samples (Lightweight Rendering Pipeline)",
+    "description": "Polybrush samples compatible with Unity Lightweight rendering pipeline.",
+    "createSeparatePackage": false
+}

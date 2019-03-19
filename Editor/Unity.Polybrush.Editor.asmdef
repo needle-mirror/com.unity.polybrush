@@ -1,0 +1,26 @@
+{
+    "name": "Unity.Polybrush.Editor",
+    "references": [
+        "Unity.Polybrush",
+        "Unity.Settings.Editor",
+        "Unity.ProBuilder",
+        "Unity.ProBuilder.Editor"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.probuilder",
+            "expression": "4.0.0",
+            "define": "PROBUILDER_4_0_OR_NEWER"
+        }
+    ]
+}

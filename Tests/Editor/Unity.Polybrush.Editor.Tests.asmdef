@@ -1,0 +1,22 @@
+{
+    "name": "Unity.Polybrush.Editor.Tests",
+    "references": [
+        "Unity.Polybrush",
+        "Unity.Polybrush.Editor",
+        "Unity.Polybrush.Tests.Framework",
+        "Unity.Settings.Editor"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

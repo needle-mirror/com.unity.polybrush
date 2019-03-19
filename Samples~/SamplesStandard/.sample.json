@@ -1,0 +1,5 @@
+{
+    "displayName": "Samples (Standard Rendering Pipeline)",
+    "description": "Polybrush samples compatible with Unity Standard rendering pipeline.",
+    "createSeparatePackage": false
+}

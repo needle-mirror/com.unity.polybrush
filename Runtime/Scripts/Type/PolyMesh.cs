@@ -52,37 +52,32 @@ namespace UnityEngine.Polybrush
 		{
 			get
 			{
+                if (m_SubMeshes == null)
+                    return 0;
+
 				return m_SubMeshes.Length;
 			}
 		}
         
         internal PolyMesh()
         {
-
+            uv0 = new List<Vector4>();
+            uv1 = new List<Vector4>();
+            uv2 = new List<Vector4>();
+            uv3 = new List<Vector4>();
         }
 
-        internal PolyMesh(Mesh mesh)
-        {
-            SetUnityMesh(mesh);
-        }
-
-        internal void SetUnityMesh(Mesh mesh)
+        /// <summary>
+        /// Initializes PolyMesh with data coming from an Unity Mesh.
+        /// </summary>
+        /// <param name="mesh"></param>
+        internal void InitializeWithUnityMesh(Mesh mesh)
         {
             m_Mesh = mesh;
 
             name = mesh.name;
 
-            vertices = mesh.vertices;
-            normals = mesh.normals;
-            colors = mesh.colors32;
-            tangents = mesh.tangents;
-
-            SetUVs(0, uv0);
-            SetUVs(1, uv1);
-            SetUVs(2, uv2);
-            SetUVs(3, uv3);
-
-            SetSubMeshes(mesh);
+            ApplyAttributesFromUnityMesh(mesh, MeshChannel.All);
         }
         /// <summary>
         /// Gets the UVs of the Mesh.
@@ -141,6 +136,10 @@ namespace UnityEngine.Polybrush
             return m_Triangles;
 		}
 
+        /// <summary>
+        /// Initializes submeshes based on mesh's submeshes.
+        /// </summary>
+        /// <param name="mesh"></param>
         internal void SetSubMeshes(Mesh mesh)
         {
             m_SubMeshes = new SubMesh[mesh.subMeshCount];
@@ -149,9 +148,12 @@ namespace UnityEngine.Polybrush
                 m_SubMeshes[i] = new SubMesh(mesh, i);
         }
 
+        /// <summary>
+        /// Refreshes current triangles list based on current submeshes.
+        /// </summary>
         void RefreshTriangles()
         {
-            this.m_Triangles = m_SubMeshes.SelectMany(x => x.indexes).ToArray();
+            m_Triangles = m_SubMeshes.SelectMany(x => x.indexes).ToArray();
         }
         
 		/// <summary>
@@ -199,50 +201,89 @@ namespace UnityEngine.Polybrush
         /// <summary>
         /// Apply the vertex attributes to a UnityEngine mesh (does not set triangles)
         /// </summary>
-        /// <param name="m"></param>
+        /// <param name="mesh"></param>
         /// <param name="attrib"></param>
-        internal void ApplyAttributesToUnityMesh(Mesh m, MeshChannel attrib = MeshChannel.All)
+        internal void ApplyAttributesToUnityMesh(Mesh mesh, MeshChannel attrib = MeshChannel.All)
 		{
 			// I guess the default value for attrib makes the compiler think that else is never
 			// activated?
 #pragma warning disable 0162
 			if(attrib == MeshChannel.All)
 			{
-				m.vertices = vertices;
-				m.normals = normals;
-				m.colors32 = colors;
-				m.tangents = tangents;
+				mesh.vertices = vertices;
+				mesh.normals = normals;
+				mesh.colors32 = colors;
+				mesh.tangents = tangents;
 
-				m.SetUVs(0, uv0);
-				m.SetUVs(1, uv1);
-				m.SetUVs(2, uv2);
-				m.SetUVs(3, uv3);
+				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
 
-                m.subMeshCount = m_SubMeshes.Length;
+                mesh.subMeshCount = m_SubMeshes.Length;
 
                 for(int i = 0; i < subMeshCount; ++i)
-                    m.SetIndices(m_SubMeshes[i].indexes, m_SubMeshes[i].topology, i);
+                    mesh.SetIndices(m_SubMeshes[i].indexes, m_SubMeshes[i].topology, i);
+
+                RefreshTriangles();
 			}
 			else
 			{
-				if((attrib & MeshChannel.Position) > 0) m.vertices = vertices;
-				if((attrib & MeshChannel.Normal) > 0) m.normals = normals;
-				if((attrib & MeshChannel.Color) > 0) m.colors32 = colors;
-				if((attrib & MeshChannel.Tangent) > 0) m.tangents = tangents;
-				if((attrib & MeshChannel.UV0) > 0) m.SetUVs(0, uv0);
-				if((attrib & MeshChannel.UV2) > 0) m.SetUVs(1, uv1);
-				if((attrib & MeshChannel.UV3) > 0) m.SetUVs(2, uv2);
-				if((attrib & MeshChannel.UV4) > 0) m.SetUVs(3, uv3);
+				if((attrib & MeshChannel.Position) > 0) mesh.vertices = vertices;
+				if((attrib & MeshChannel.Normal) > 0) mesh.normals = normals;
+				if((attrib & MeshChannel.Color) > 0) mesh.colors32 = colors;
+				if((attrib & MeshChannel.Tangent) > 0) mesh.tangents = tangents;
+				if((attrib & MeshChannel.UV0) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+				if((attrib & MeshChannel.UV2) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+				if((attrib & MeshChannel.UV3) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+				if((attrib & MeshChannel.UV4) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
 			}
 #pragma warning restore 0162
 		}
+
+        internal void ApplyAttributesFromUnityMesh(Mesh mesh, MeshChannel attrib = MeshChannel.All)
+        {
+#pragma warning disable 0162
+            if (attrib == MeshChannel.All)
+            {
+                vertices = mesh.vertices;
+                normals = mesh.normals;
+                colors = mesh.colors32;
+                tangents = mesh.tangents;
+
+                mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+                mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+                mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+                mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
+
+                /// Update submeshes only if there were none set or if we are no
+                /// about to change the submeshCount.
+                if (subMeshCount == 0 || mesh.subMeshCount == subMeshCount)
+                {
+                    SetSubMeshes(mesh);
+                    RefreshTriangles();
+                }
+            }
+            else
+            {
+                if ((attrib & MeshChannel.Position) > 0) vertices = mesh.vertices;
+                if ((attrib & MeshChannel.Normal) > 0) normals = mesh.normals;
+                if ((attrib & MeshChannel.Color) > 0) colors = mesh.colors32;
+                if ((attrib & MeshChannel.Tangent) > 0) tangents = mesh.tangents;
+                if ((attrib & MeshChannel.UV0) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
+                if ((attrib & MeshChannel.UV2) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
+                if ((attrib & MeshChannel.UV3) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
+                if ((attrib & MeshChannel.UV4) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
+            }
+#pragma warning restore 0162
+        }
 
         /// <summary>
         /// Get the mesh stored and update local values
         /// If doesn't exist, create a new mesh from the data stored and return it
         /// </summary>
         /// <returns></returns>
-        public Mesh GetMeshAsUnityRepresentation()
+        internal Mesh ToUnityMesh()
         {
             if (m_Mesh == null)
             {
@@ -258,7 +299,7 @@ namespace UnityEngine.Polybrush
         /// <summary>
         /// Will update the stored mesh with serialized data
         /// </summary>
-        public void UpdateMeshFromData()
+        internal void UpdateMeshFromData()
         {
             if (m_Mesh == null)
             {
@@ -266,8 +307,22 @@ namespace UnityEngine.Polybrush
                 m_Mesh.name = name;
             }
 
-
             ApplyAttributesToUnityMesh(m_Mesh);
+        }
+
+        /// <summary>
+        /// Returns true if PolyMesh has valid data.
+        /// </summary>
+        /// <returns></returns>
+        internal bool IsValid()
+        {
+            if (vertexCount == 0)
+                return false;
+
+            if (m_Triangles.Length == 0)
+                return false;
+
+            return true;
         }
 	}
 }

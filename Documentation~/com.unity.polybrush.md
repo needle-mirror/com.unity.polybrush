@@ -1,16 +1,43 @@
 # About Polybrush
 
-Mesh painting, sculpting, and geo-scattering tool for Unity.
+Polybrush is a mesh painting, sculpting, and geo-scattering tool for **Unity 2018.3 and later**.
 
-[Intro to Polybrush Video](https://youtu.be/JQyntL-Z5bM)
+> It is only compatible with Unity and ProBuilder 4 meshes. If you would like to work on Unity terrains, please use the dedicated tool instead.
 
-[Full Documentation](https://www.procore3d.com/docs/polybrush)
+Polybrush full documentation is available [here](https://unity-technologies.github.io/procore-legacy-docs/polybrush/polybrush-gh-pages/).
 
-> IMPORTANT: Polybrush is for working with meshes, not terrain. Use the Unity Terrain tool for modeling terrains.
+[![Polybrush tutorial video](images/tutorial-video-thumb.png)](https://youtu.be/JQyntL-Z5bM "Polybrush Tutorial Video")
 
-# Installing Polybrush
+# Installation
 
-To install this package, follow the instructions in the [Package Manager documentation](https://docs.unity3d.com/Packages/com.unity.package-manager-ui@latest/index.html). 
+From version 1.0 and onwards, Polybrush will only be available from the Package Manager.
+
+To install this package, follow the instructions in the [Package Manager documentation](https://docs.unity3d.com/Packages/com.unity.package-manager-ui@latest/index.html).
+
+# Upgrading Polybrush
+
+If you have been using a version of Polybrush prior 1.0, please thoroughly follow these instructions:
+
+   1. Close Unity.
+   2. Find the `/ProCore/Polybrush/` folder. It should be located at `<project_assets_folder>/ProCore/Polybrush/`.
+   3. Delete the folder.
+   4. Open Unity.
+   5. Install last version of Polybrush from Package Manager (see [Installing Polybrush](#installing))
+
+As `Z_AdditionalVertexStreams` is now deprecated, Polybrush 1.0 will automatically replace them by the new component `PolybrushMesh` the first time you will be hovering an object with one of Polybrush's tools enabled.
+
+### Batch update Z_AdditionalVertexStreams
+
+**Note:** please skip this section if you haven't been using Additional Vertex Streams with previous versions of Polybrush.
+
+In Polybrush 1.0, a menu item is available in `Tools > Polybrush > Upgrade Z_AdditionalVertexStreams`.
+
+When used, it will go through every scene currently loaded in the Editor and look for `Z_AdditionalVertexStreams` components (even on inactive gameobjects). When one is found, it will be replaced by its new equivalent `PolybrushMesh` component. The internal data is converted during the process so you don't loose anything. Expect your scenes and objects to be marked as dirty, so don't forget to Save after this process.
+
+# Integrations
+### ProBuilder 4
+
+Polybrush 1.0 is fully compatible with ProBuilder 4. To use it, you only need to import ProBuilder 4 via the Package Manager. Interacting with Unity meshes and ProBuilder objects will work identically.
 
 # Using Polybrush
 
@@ -83,29 +110,11 @@ We can now paint and blend textures on the mesh:
 1. Hover your mouse over the Plane, and `Left Click` to paint, `Shift Left Click` to erase the selected texture.
 
 ![place example](https://unity-technologies.github.io/procore-legacy-docs/polybrush/polybrush-gh-pages/images/ModeExamples_Place.png)
+                                                           |
 
-
-# Technical details
-## Requirements
-
-This version of Polybrush is compatible with the following versions of the Unity Editor:
-
-* 2018.1 and later (recommended)
-
-## Package contents
-
-**Polybrush** includes a few different blend materials to get you started:
-
-| Name                                | Description                                                                                                                             |
-| -                                   | -                                                                                                                                       |
-| **Standard Texture Blend**          | A PBR enabled material with support for blending up to 12 different textures.                                                           |
-| **Standard Texture Blend Bump**     | A PBR enabled material with support for blending up to 4 different textures with normal maps.                                           |
-| **TriPlanar Texture Blend**         | A PBR enabled material with support for blending up to 4 textures and automatically projects UV coordinates.                            |
-| **TriPlanar Texture Blend Legacy**  | A Blinn-Phong lighting pipeline (legacy) material with support for blending up to 4 textures and automatically projects UV coordinates. |
-| **Unlit Texture Blend**             | A simple unlit material with support for blending up to 6 textures.                                                                     |
-
-## Document revision history
+# Document revision history
 
 |Date|Reason|
 |---|---|
-|July 12, 2018 | Initial Version |
+|March 27, 2019| Add new sections: [Installation](#installation), [Upgrading Polybrush](#upgrading-polybrush), [Integrations](#integrations).</br>Update [About](#about). |
+|July 12, 2018| Initial Version |

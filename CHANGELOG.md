@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-preview.16] - 2019-04-30
+
+### Changes
+- Add support for Unity 2018.3.
+
+### Bug Fixes
+- Fix an issue occurring when there is a vertex count mismatch between Additional Vertex Streams and the mesh referenced in the MeshFilter component.
+
+### Changes
+- Polybrush will automatically upgrade Z_AdditionalVertexStreams to PolybrushMesh components.
+- Add new section in documentations: Upgrading Polybrush.
+
+## [1.0.0-preview.14] - 2019-04-04
+
+### Changes
+- Polybrush will automatically upgrade Z_AdditionalVertexStreams to PolybrushMesh components.
+- Add new section in documentations: Upgrading Polybrush.
+
 ## [1.0.0-preview.13] - 2019-03-20
 
 ### Changes
@@ -17,12 +35,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0-preview.11] - 2019-03-13
 
-###Bug Fixes
+### Bug Fixes
 - Minor fixes
 
 ## [1.0.0-preview.10] - 2019-03-12
 
-###Bug Fixes
+### Bug Fixes
 - Minor fixes
 
 ### Changes
@@ -30,7 +48,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0-preview.9] - 2019-03-08
 
-###Bug Fixes
+### Bug Fixes
 - Fix compatibility issues with SkinnedMeshRenderer component.
 - Fix compatibility issues with ProBuilder 4.
 - Scattering tool: fix exceptions thrown when removing objects from palettes.
@@ -38,7 +56,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0-preview.8] - 2019-02-26
 
-###Bug Fixes
+### Bug Fixes
 - Fix brush inner and outer rings not always reflecting user's Preferences.
 
 ## [1.0.0-preview.7] - 2019-02-08

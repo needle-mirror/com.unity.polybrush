@@ -1,12 +1,9 @@
-﻿using UnityEngine;
+﻿#define PROBUILDER_4_0_OR_NEWER
+
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
-
-#if PROBUILDER_4_0_OR_NEWER
-using UnityEditor.ProBuilder;
-using UnityEngine.ProBuilder;
-#endif
 
 namespace UnityEditor.Polybrush
 {
@@ -19,8 +16,9 @@ namespace UnityEditor.Polybrush
 		// All meshes that have ever been modified, ever.  Kept around to refresh mesh vertices
 		// on Undo/Redo since Unity doesn't.
 		private HashSet<PolyMesh> modifiedMeshes = new HashSet<PolyMesh>();
+
 #if PROBUILDER_4_0_OR_NEWER
-        private HashSet<ProBuilderMesh> modifiedPbMeshes = new HashSet<ProBuilderMesh>();
+        private HashSet<GameObject> modifiedPbMeshes = new HashSet<GameObject>();
 #endif
 
         internal override void OnBrushBeginApply(BrushTarget brushTarget, BrushSettings brushSettings)
@@ -34,29 +32,37 @@ namespace UnityEditor.Polybrush
 			brushTarget.editableObject.Apply(true);
 
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.Refresh(false);
+            if (ProBuilderBridge.ProBuilderExists() && brushTarget.editableObject.isProBuilderObject)
+                ProBuilderBridge.Refresh(brushTarget.gameObject);
 #endif
+
             UpdateTempComponent(brushTarget, brushSettings);
 		}
 
 		internal override void RegisterUndo(BrushTarget brushTarget)
 		{
+
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderMesh pbMesh = brushTarget.gameObject.GetComponent<ProBuilderMesh>();
-            if (pbMesh != null)
-			{
-				Undo.RegisterCompleteObjectUndo(pbMesh, UndoMessage);
-				modifiedPbMeshes.Add(pbMesh);
-			}
-            else
+            if (ProBuilderBridge.IsValidProBuilderMesh(brushTarget.gameObject))
             {
-				Undo.RegisterCompleteObjectUndo(brushTarget.editableObject.polybrushMesh, UndoMessage);
-				modifiedMeshes.Add(brushTarget.editableObject.polybrushMesh.polyMesh);
-			}
-#else
-			Undo.RegisterCompleteObjectUndo(brushTarget.editableObject.polybrushMesh, UndoMessage);
-			modifiedMeshes.Add(brushTarget.editableObject.polybrushMesh.polyMesh);
+                UnityEngine.Object pbMesh = ProBuilderBridge.GetProBuilderComponent(brushTarget.gameObject);
+                if (pbMesh != null)
+                {
+                    Undo.RegisterCompleteObjectUndo(pbMesh, UndoMessage);
+                    modifiedPbMeshes.Add(brushTarget.gameObject);
+                }
+                else
+                {
+                    Undo.RegisterCompleteObjectUndo(brushTarget.editableObject.polybrushMesh, UndoMessage);
+                    modifiedMeshes.Add(brushTarget.editableObject.polybrushMesh.polyMesh);
+                }
+            }
+            else
 #endif
+            {
+                Undo.RegisterCompleteObjectUndo(brushTarget.editableObject.polybrushMesh, UndoMessage);
+                modifiedMeshes.Add(brushTarget.editableObject.polybrushMesh.polyMesh);
+            }
 
             brushTarget.editableObject.isDirty = true;
 		}
@@ -66,26 +72,29 @@ namespace UnityEditor.Polybrush
 			modifiedMeshes = new HashSet<PolyMesh>(modifiedMeshes.Where(x => x != null));
 
 #if PROBUILDER_4_0_OR_NEWER
-            // delete & undo causes cases where object is not null but the reference to it's pb_Object is
-            HashSet<ProBuilderMesh> remove = new HashSet<ProBuilderMesh>();
-
-            foreach (ProBuilderMesh pb in modifiedPbMeshes)
+            if (ProBuilderBridge.ProBuilderExists())
             {
-                try
+                // delete & undo causes cases where object is not null but the reference to it's pb_Object is
+                HashSet<GameObject> remove = new HashSet<GameObject>();
+
+                foreach (GameObject pb in modifiedPbMeshes)
                 {
-                    pb.ToMesh();
-                    pb.Refresh();
-                    pb.Optimize();
-                }
-                catch
-                {
-                    remove.Add(pb);
+                    try
+                    {
+                        ProBuilderBridge.ToMesh(pb);
+                        ProBuilderBridge.Refresh(pb);
+                        ProBuilderBridge.Optimize(pb);
+                    }
+                    catch
+                    {
+                        remove.Add(pb);
+                    }
+
                 }
 
+                if (remove.Count() > 0)
+                    modifiedPbMeshes.SymmetricExceptWith(remove);
             }
-
-            if (remove.Count() > 0)
-                modifiedPbMeshes.SymmetricExceptWith(remove);
 #endif
 
             foreach (PolyMesh m in modifiedMeshes)

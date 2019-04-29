@@ -4,6 +4,7 @@ using System.Reflection;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine.Polybrush;
+using Polybrush;
 
 namespace UnityEditor.Polybrush
 {
@@ -336,5 +337,39 @@ namespace UnityEditor.Polybrush
         {
             return gameObject.GetComponent<PolybrushMesh>() != null;
         }
+
+#pragma warning disable 612
+        /// <summary>
+        /// Utility to help convert objects modified with the Beta version of Polybrush (Asset Store)
+        /// to Polybrus 1.x.
+        /// </summary>
+        /// <param name="component"></param>
+        internal static PolybrushMesh ConvertGameObjectToNewFormat(z_AdditionalVertexStreams component)
+        {
+            GameObject go = component.gameObject;
+            PolybrushMesh newComponent = go.GetComponent<PolybrushMesh>();
+            MeshFilter mf = go.GetComponent<MeshFilter>();
+            Mesh mesh = component.m_AdditionalVertexStreamMesh;
+
+            Undo.DestroyObjectImmediate(component);
+
+            // Cancel conversion if no mesh if found on Z_AdditionalVertexStreams
+            if (mesh == null)
+                return null;
+
+            if (newComponent == null)
+            {
+                newComponent = Undo.AddComponent<PolybrushMesh>(go);
+                newComponent.Initialize();
+            }
+
+            PolybrushMesh.s_UseADVS = true;
+
+            newComponent.SetMesh(PolyMeshUtility.DeepCopy(mf.sharedMesh));
+            newComponent.SetAdditionalVertexStreams(mesh);
+
+            return newComponent;
+        }
+#pragma warning restore 612
     }
 }

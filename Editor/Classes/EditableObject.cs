@@ -1,3 +1,5 @@
+#define PROBUILDER_4_0_OR_NEWER
+
 using UnityEngine;
 using System;
 using System.Collections;
@@ -5,10 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
-
-#if PROBUILDER_4_0_OR_NEWER
-using UnityEngine.ProBuilder;
-#endif
+using Polybrush;
 
 namespace UnityEditor.Polybrush
 {
@@ -129,13 +128,9 @@ namespace UnityEditor.Polybrush
                     _skinMeshRenderer.BakeMesh(mesh);
 
                     if (_skinMeshBaked == null)
-                    {
-                        _skinMeshBaked = new PolyMesh(mesh);
-                    }
-                    else
-                    {
-                        _skinMeshBaked.SetUnityMesh(mesh);
-                    }
+                        _skinMeshBaked = new PolyMesh();
+                    
+                    _skinMeshBaked.InitializeWithUnityMesh(mesh);
 
                     return _skinMeshBaked;
                 }
@@ -219,9 +214,10 @@ namespace UnityEditor.Polybrush
 		internal bool isDirty = false;
 
 #if PROBUILDER_4_0_OR_NEWER
-		// Is the mesh owned by ProBuilder?
-		internal bool isProBuilderObject { get; private set; }
-#endif
+        // Is the mesh owned by ProBuilder?
+        internal bool isProBuilderObject { get; private set; }
+#endif   
+		
 		// Is the mesh using additional vertex streams?
 		internal bool usingVertexStreams { get; private set; }
 
@@ -257,8 +253,9 @@ namespace UnityEditor.Polybrush
 #if PROBUILDER_4_0_OR_NEWER
                 if (isProBuilderObject)
                 {
-                    ProBuilderMesh pbMesh = gameObjectAttached.GetComponent<ProBuilderMesh>();
-                    if (pbMesh != null && _editMesh != null && _editMesh.vertexCount != pbMesh.vertexCount)
+                    if (ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached) 
+                        && _editMesh != null
+                        && _editMesh.vertexCount != ProBuilderBridge.GetVertexCount(gameObjectAttached))
                     {
                         return false;
                     }
@@ -297,11 +294,15 @@ namespace UnityEditor.Polybrush
 
         private void Initialize(GameObject go)
         {
-            gameObjectAttached = go;
-#if PROBUILDER_4_0_OR_NEWER
-            isProBuilderObject = ProBuilderInterface.IsProBuilderObject(go);
-#endif
+            CheckBackwardCompatiblity(go);
 
+            gameObjectAttached = go;
+            isProBuilderObject = false;
+
+#if PROBUILDER_4_0_OR_NEWER
+            if (ProBuilderBridge.ProBuilderExists())
+                isProBuilderObject = ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached);
+#endif
             Mesh mesh = null;
             MeshRenderer meshRenderer = gameObjectAttached.GetComponent<MeshRenderer>();
             meshFilter = gameObjectAttached.GetComponent<MeshFilter>();
@@ -319,8 +320,8 @@ namespace UnityEditor.Polybrush
 
             if (m_PolybrushMesh == null)
             {
-                Undo.RecordObject(gameObjectAttached, "Add PolybrushMesh");
-                m_PolybrushMesh = gameObjectAttached.AddComponent<PolybrushMesh>();
+                m_PolybrushMesh = Undo.AddComponent<PolybrushMesh>(gameObjectAttached);
+                m_PolybrushMesh.Initialize();
             }
 
             //attach the skinmesh ref to the polybrushmesh
@@ -338,12 +339,10 @@ namespace UnityEditor.Polybrush
             // if it's a probuilder object rebuild the mesh without optimization
             if (isProBuilderObject)
             {
-                ProBuilderMesh pb = go.GetComponent<ProBuilderMesh>();
-
-                if (pb != null)
+                if (ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached))
                 {
-                    pb.ToMesh();
-                    pb.Refresh(RefreshMask.All);
+                    ProBuilderBridge.ToMesh(gameObjectAttached);
+                    ProBuilderBridge.Refresh(gameObjectAttached);
                 }
             }
 #endif
@@ -421,60 +420,40 @@ namespace UnityEditor.Polybrush
                     UpdateMeshCollider();
                 }
 
-                if (m_PolybrushMesh.meshFilter)
-                    Undo.RecordObject(m_PolybrushMesh.meshFilter, "Assign Polymesh to MeshFilter");
+                if (m_PolybrushMesh.componentsCache.MeshFilter)
+                    Undo.RecordObject(m_PolybrushMesh.componentsCache.MeshFilter, "Assign Polymesh to MeshFilter");
 
                 if (m_PolybrushMesh)
-                    m_PolybrushMesh.UpdateMesh();
+                    m_PolybrushMesh.SynchronizeWithMeshRenderer();
             }
+
+
 #if PROBUILDER_4_0_OR_NEWER
             // if it's a probuilder object rebuild the mesh without optimization
             if (isProBuilderObject)
-            {
-                ProBuilderMesh pbMesh = gameObjectAttached.GetComponent<ProBuilderMesh>();
+            {              
+                ProBuilderBridge.SetPositions(gameObjectAttached, editMesh.vertices);
+                ProBuilderBridge.SetTangents(gameObjectAttached, editMesh.tangents);
 
-                // Set the pb_Object.vertices array so that pb_Editor.UpdateSelection
-                // can draw the wireframes correctly.
-                Vertex[] pbVertices = new Vertex[editMesh.vertices.Length];
-
-                // Prepare position data
-                for (int i = 0; i < editMesh.vertices.Length; ++i)
+                if (editMesh.colors != null && editMesh.colors.Length == editMesh.vertexCount)
                 {
-                    Vertex v = new Vertex();
-                    v.position = editMesh.vertices[i];
-
-                    if (optimize)
-                    {
-                        // Prepare tangents data
-                        v.tangent = editMesh.tangents[i];
-                    }
-
-                    pbVertices[i] = v;
+                    Color[] colors = System.Array.ConvertAll(editMesh.colors, x => (Color) x);
+                    ProBuilderBridge.SetColors(gameObjectAttached, colors);
                 }
 
-                pbMesh.SetVertices(pbVertices);
-
-                if (optimize)
+                if (rebuildMesh)
                 {
-                    // Set Colors data if they exist
-                    if (editMesh.colors != null && editMesh.colors.Length == editMesh.vertexCount)
-                    {
-                        Color[] colors = System.Array.ConvertAll(editMesh.colors, x => (Color)x);
-                        pbMesh.colors = colors;
-                    }
-
-                    // Check if UV3/4 have been modified
-                    pbMesh.SetUVs(2, editMesh.GetUVs(2));
-                    pbMesh.SetUVs(3, editMesh.GetUVs(3));
-
-                    if (rebuildMesh)
-                    {
-                        pbMesh.ToMesh();
-                        pbMesh.Refresh(optimize ? RefreshMask.All : (RefreshMask.Colors | RefreshMask.Normals | RefreshMask.Tangents));
-                    }
+                    ProBuilderBridge.ToMesh(gameObjectAttached);
+                    ProBuilderBridge.Refresh(gameObjectAttached,
+                        optimize
+                            ? ProBuilderBridge.RefreshMask.All
+                            : (ProBuilderBridge.RefreshMask.Colors
+                               | ProBuilderBridge.RefreshMask.Normals
+                               | ProBuilderBridge.RefreshMask.Tangents));
                 }
             }
 #endif
+
             if (usingVertexStreams)
                 return;
 
@@ -490,10 +469,10 @@ namespace UnityEditor.Polybrush
                 UpdateMeshCollider();
             }
 
-            if (m_PolybrushMesh.meshFilter)
-                Undo.RecordObject(m_PolybrushMesh.meshFilter, "Assign Polymesh to MeshFilter");
+            if (m_PolybrushMesh.componentsCache.MeshFilter)
+                Undo.RecordObject(m_PolybrushMesh.componentsCache.MeshFilter, "Assign Polymesh to MeshFilter");
 
-            m_PolybrushMesh.UpdateMesh();
+            m_PolybrushMesh.SynchronizeWithMeshRenderer();
         }
         /// <summary>
         /// Update the mesh collider
@@ -549,13 +528,13 @@ namespace UnityEditor.Polybrush
                 }
                 return;
 			}
-            
+
 #if PROBUILDER_4_0_OR_NEWER
             if (isProBuilderObject)
                 return;
 #endif
 
-			if(	originalMesh == null ||
+            if(	originalMesh == null ||
 				(source == ModelSource.Scene && !UnityPrimitiveMeshNames.Contains(originalMesh.name)))
 			{
                 return;
@@ -638,10 +617,24 @@ namespace UnityEditor.Polybrush
         {
             // Check if there's any modification on the PolybrushMesh component.
             // If there is none, remove it from the GameObject.
-            if (!m_PolybrushMesh.hasAppliedChanges)
+            if (!m_PolybrushMesh.hasAppliedChanges || isProBuilderObject)
             {
                 GameObject.DestroyImmediate(m_PolybrushMesh);
             }
         }
-	}
+
+#pragma warning disable 612
+        /// <summary>
+        /// Checks if object contains old data structure. If so, converts to our new format.
+        /// Will trigger if object has been edited with the Asset Store (Beta) version.
+        /// </summary>
+        void CheckBackwardCompatiblity(GameObject go)
+        {
+
+            z_AdditionalVertexStreams oldFormat = go.GetComponent<z_AdditionalVertexStreams>();
+            if (oldFormat != null)
+                PolyEditorUtility.ConvertGameObjectToNewFormat(oldFormat);
+        }
+#pragma warning restore 612
+    }
 }

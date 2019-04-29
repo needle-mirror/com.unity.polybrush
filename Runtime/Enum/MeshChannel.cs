@@ -42,5 +42,41 @@ namespace UnityEngine.Polybrush
 
 			return -1;
 		}
+
+        /// <summary>
+        /// Scan a given mesh and create a mask mapping existing channels found.
+        /// </summary>
+        /// <param name="mesh">A valid mesh reference.</param>
+        /// <returns>Mask defining existing information in <para name="mesh" />.</returns>
+        internal static MeshChannel ToMask(Mesh mesh)
+        {
+            MeshChannel channels = MeshChannel.Null;
+
+            if (mesh.vertices.Length > 0)
+                channels |= MeshChannel.Position;
+
+            if (mesh.normals.Length > 0)
+                channels |= MeshChannel.Normal;
+
+            if (mesh.colors32.Length > 0)
+                channels |= MeshChannel.Color;
+
+            if (mesh.tangents.Length > 0)
+                channels |= MeshChannel.Tangent;
+
+            if (mesh.uv.Length > 0)
+                channels |= MeshChannel.UV0;
+
+            if (mesh.uv2.Length > 0)
+                channels |= MeshChannel.UV2;
+
+            if (mesh.uv3.Length > 0)
+                channels |= MeshChannel.UV3;
+
+            if (mesh.uv4.Length > 0)
+                channels |= MeshChannel.UV4;
+
+            return channels;
+        }
 	}
 }

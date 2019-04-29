@@ -1,15 +1,11 @@
-﻿//#define POLYBRUSH_DEBUG
+﻿#define PROBUILDER_4_0_OR_NEWER
+//#define POLYBRUSH_DEBUG
 
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
-
-#if PROBUILDER_4_0_OR_NEWER
-using UnityEditor.ProBuilder;
-using UnityEngine.ProBuilder;
-#endif
 
 namespace UnityEditor.Polybrush
 {
@@ -164,8 +160,10 @@ namespace UnityEditor.Polybrush
             m_BrushMirrorEditor = new MirrorSettingsEditor();
 
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.selectModeChanged += OnProBuilderEditLevelChanged;
+            if (ProBuilderBridge.ProBuilderExists())
+                ProBuilderBridge.SubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
 #endif
+            
             m_GCToolmodeIcons = new GUIContent[]
             {
                 EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/Sculpt"), "Sculpt on meshes"),
@@ -223,8 +221,11 @@ namespace UnityEditor.Polybrush
             //EditorApplication.hierarchyWindowItemOnGUI -= OnHierarchyWindowItemChanged;
 
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.selectModeChanged -= OnProBuilderEditLevelChanged;
+            if (ProBuilderBridge.ProBuilderExists())
+                ProBuilderBridge.UnsubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
 #endif
+
+
             // store local changes to brushSettings
             if (brushSettings != null)
             {
@@ -242,10 +243,13 @@ namespace UnityEditor.Polybrush
 		void OnDestroy()
 		{
 			SetTool(BrushTool.None);
+
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.selectMode = UnityEngine.ProBuilder.SelectMode.Object;
+            if (ProBuilderBridge.ProBuilderExists())
+                ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.Object);
 #endif
-            foreach(BrushMode m in modes)
+
+            foreach (BrushMode m in modes)
 				GameObject.DestroyImmediate(m);
 
 			if(brushSettings != null)
@@ -430,12 +434,11 @@ namespace UnityEditor.Polybrush
                 }
         }
 
-#if PROBUILDER_4_0_OR_NEWER
         /// <summary>
-        /// Delegate called when ProBuilder changes Edit Level
+        /// Delegate called when ProBuilder changes select mode.
         /// </summary>
         /// <param name="i"></param>
-        void OnProBuilderEditLevelChanged(SelectMode mode)
+        void OnProBuilderSelectModeChanged(int mode)
 		{
 			// Top = 0,
 			// Geometry = 1,
@@ -445,7 +448,7 @@ namespace UnityEditor.Polybrush
 			if(mode > 0 && tool != BrushTool.None)
 				SetTool(BrushTool.None);
 		}
-#endif
+        
         /// <summary>
         /// Switch Polybrush to the given tool.
         /// </summary>
@@ -455,9 +458,12 @@ namespace UnityEditor.Polybrush
 		{
 			if(brushTool == tool && mode != null)
 				return;
+
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.selectMode = SelectMode.Object;
+            if (ProBuilderBridge.ProBuilderExists())
+                ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.Object);
 #endif
+
             if(mode != null)
 			{
 				// Exiting edit mode
@@ -472,7 +478,8 @@ namespace UnityEditor.Polybrush
 			else
 			{
 #if PROBUILDER_4_0_OR_NEWER
-                ProBuilderEditor.selectMode = UnityEngine.ProBuilder.SelectMode.None;
+                if (ProBuilderBridge.ProBuilderExists())
+                    ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.None);
 #endif
             }
 
@@ -506,7 +513,7 @@ namespace UnityEditor.Polybrush
         /// </summary>
 		internal void RefreshAvailableBrushes()
 		{
-            		m_AvailableBrushes = PolyEditorUtility.GetAll<BrushSettings>();
+            m_AvailableBrushes = PolyEditorUtility.GetAll<BrushSettings>();
 
 			if(m_AvailableBrushes.Count < 1)
 				m_AvailableBrushes.Add(PolyEditorUtility.GetFirstOrNew<BrushSettings>());
@@ -1049,7 +1056,8 @@ namespace UnityEditor.Polybrush
 			m_LastHoveredGameObject = null;
 
 #if PROBUILDER_4_0_OR_NEWER
-            ProBuilderEditor.Refresh(false);
+            if (ProBuilderBridge.ProBuilderExists())
+                ProBuilderBridge.RefreshEditor(false);
 #endif
             Repaint();
 		}

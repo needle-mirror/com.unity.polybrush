@@ -1,9 +1,8 @@
-﻿using UnityEngine;
+﻿#define PROBUILDER_4_0_OR_NEWER
+
+using UnityEngine;
 using UnityEngine.Polybrush;
 
-#if PROBUILDER_4_0_OR_NEWER
-using UnityEngine.ProBuilder;
-#endif
 namespace UnityEditor.Polybrush
 {
     /// <summary>
@@ -80,12 +79,8 @@ namespace UnityEditor.Polybrush
             switch (m_previewState)
             {
                 case State.Loading:
-                    if (ProBuilderInterface.IsProBuilderObject(m_Asset as GameObject))
-#if PROBUILDER_4_0_OR_NEWER
+                    if (ProBuilderBridge.ProBuilderExists() && ProBuilderInterface.IsProBuilderObject(m_Asset as GameObject))
                         m_PreviewTexture = GenerateProBuilderPreview();
-#else
-                        SetState(State.Cannot_Load);
-#endif
                     else if (PolyEditorUtility.IsPolybrushObject(m_Asset as GameObject))
                         m_PreviewTexture = GeneratePreview();
                     else
@@ -123,7 +118,6 @@ namespace UnityEditor.Polybrush
             return preview;
         }
 
-#if PROBUILDER_4_0_OR_NEWER
         /// <summary>
         /// Generate a static preview for a ProBuilderMesh.
         /// </summary>
@@ -133,10 +127,11 @@ namespace UnityEditor.Polybrush
             GameObject copy = GameObject.Instantiate<GameObject>(m_Asset as GameObject);
             copy.hideFlags = HideFlags.HideAndDontSave;
 
-            ProBuilderMesh pbMesh = copy.GetComponent<ProBuilderMesh>();
-            pbMesh.ToMesh();
-            pbMesh.Refresh();
-
+#if PROBUILDER_4_0_OR_NEWER
+            ProBuilderBridge.ToMesh(copy);
+            ProBuilderBridge.Refresh(copy);
+#endif
+            
             MeshFilter mf = copy.GetComponent<MeshFilter>();
 
             Editor meshEditor = Editor.CreateEditor(mf.sharedMesh);
@@ -148,7 +143,6 @@ namespace UnityEditor.Polybrush
 
             return preview;
         }
-#endif
 
         private void SetState(State newState)
         {

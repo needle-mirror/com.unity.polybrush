@@ -3,7 +3,6 @@
     "references": [
         "Unity.Polybrush",
         "Unity.Polybrush.Editor",
-        "Unity.Polybrush.Tests.Framework",
         "Unity.Settings.Editor"
     ],
     "optionalUnityReferences": [
@@ -17,6 +16,5 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": []
+    "defineConstraints": []
 }

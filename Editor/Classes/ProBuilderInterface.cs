@@ -1,8 +1,6 @@
-using UnityEngine;
+#define PROBUILDER_4_0_OR_NEWER
 
-#if PROBUILDER_4_0_OR_NEWER
-using UnityEngine.ProBuilder;
-#endif
+using UnityEngine;
 
 namespace UnityEditor.Polybrush
 {
@@ -17,10 +15,10 @@ namespace UnityEditor.Polybrush
 		/// <param name="gameObject"></param>
 		/// <returns></returns>
 		internal static bool IsProBuilderObject(GameObject gameObject)
-		{
+        {
 #if PROBUILDER_4_0_OR_NEWER
-            return gameObject.GetComponent<ProBuilderMesh>() != null;
-#else
+            if (ProBuilderBridge.ProBuilderExists())
+                return ProBuilderBridge.IsValidProBuilderMesh(gameObject);
             return false;
 #endif
         }

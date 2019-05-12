@@ -80,7 +80,7 @@ namespace UnityEditor.Polybrush
         /// Data will be stored in a PolybrushMesh component.
         /// </summary>
         [UserSetting("General Settings", "Use Additional Vertex Streams", "Instead of applying changes directly to the mesh, modifications will be stored in an additionalVertexStreams mesh.  This option can be more performance friendly in some cases.")]
-        internal static Pref<bool> s_UseAdditionalVertexStreams = new Pref<bool>("Mesh.UseAdditionalVertexStream", true, SettingsScope.Project);
+        internal static Pref<bool> s_UseAdditionalVertexStreams = new Pref<bool>("Mesh.UseAdditionalVertexStream", false, SettingsScope.Project);
 
 
         private static HashSet<string> UnityPrimitiveMeshNames = new HashSet<string>()

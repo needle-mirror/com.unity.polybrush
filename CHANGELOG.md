@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+### Known Issues
+- Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
+- Users can't create prefabs with sculpted or painted meshes if "Use Additional Vertex Streams" is disabled.
+
+## [1.0.0-preview.17] - 2019-05-13
+
+### Changes
+- Set "Use Additional Vertex Streams" default value to false.
+
 ## [1.0.0-preview.16] - 2019-04-30
 
 ### Changes

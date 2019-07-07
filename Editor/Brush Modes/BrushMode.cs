@@ -79,7 +79,7 @@ namespace UnityEditor.Polybrush
         /// </summary>
         internal virtual void OnEnable()
 		{
-			this.hideFlags = HideFlags.HideAndDontSave;
+            this.hideFlags = HideFlags.HideAndDontSave;
 		}
 
         /// <summary>
@@ -185,18 +185,25 @@ namespace UnityEditor.Polybrush
 		}
 
         /// <summary>
+        /// Update gizmos drawing color based on settings.
+        /// </summary>
+        internal void UpdateBrushGizmosColor()
+        {
+            innerColor = s_FullStrengthColor;
+            outerColor = s_BrushGradientColor.value.Evaluate(1f);
+
+            innerColor.a = .9f;
+            outerColor.a = .35f;
+        }
+
+        /// <summary>
         /// Draw scene gizmos. Base implementation draws the brush preview.
         /// </summary>
         /// <param name="target">Current target Object</param>
         /// <param name="settings">Current brush settings</param>
         internal virtual void DrawGizmos(BrushTarget target, BrushSettings settings)
 		{
-            innerColor = s_FullStrengthColor;
-            outerColor = s_BrushGradientColor.value.Evaluate(1f);
-
-            innerColor.a = .9f;
-            outerColor.a = .35f;
-
+            UpdateBrushGizmosColor();
             foreach (PolyRaycastHit hit in target.raycastHits)
 				PolyHandles.DrawBrush(hit.position, hit.normal, settings, target.localToWorldMatrix, innerColor, outerColor);
 

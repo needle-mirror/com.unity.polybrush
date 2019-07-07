@@ -76,10 +76,10 @@ namespace UnityEngine.Polybrush
         /// </summary>
 		internal static readonly GUIContent[] ComponentIndexPopupDescriptions = new GUIContent[]
 		{
-			new GUIContent("X (R)"),
-			new GUIContent("Y (G)"),
-			new GUIContent("Z (B)"),
-			new GUIContent("W (A)")
+			new GUIContent("R"),
+			new GUIContent("G"),
+			new GUIContent("B"),
+			new GUIContent("A")
 		};
 
         /// <summary>

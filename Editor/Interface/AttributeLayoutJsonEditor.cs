@@ -37,11 +37,12 @@ namespace UnityEditor.Polybrush
 					new AttributeLayout(MeshChannel.Color, ComponentIndex.B, Vector2.up, 0, "_Texture3"),
 					new AttributeLayout(MeshChannel.Color, ComponentIndex.A, Vector2.up, 0, "_Texture4"),
 				};
+#pragma warning disable 0618
+                path = ShaderMetaDataUtility.SaveMeshAttributesData(shader, attributes, true);
+#pragma warning restore 0618
+            }
 
-				path = ShaderMetaDataUtility.SaveMeshAttributesData(shader, attributes, true);
-			}
-
-			AssetDatabase.Refresh();
+            AssetDatabase.Refresh();
 
 			TextAsset asset = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
 
@@ -72,8 +73,9 @@ namespace UnityEditor.Polybrush
 
 			if(editor == null)
 			{
-			    ShaderMetaDataUtility.TryReadAttributeLayoutsFromJson(asset.text, out container);
-
+#pragma warning disable 0618
+                ShaderMetaDataUtility.TryReadAttributeLayoutsFromJson(asset.text, out container);
+#pragma warning disable 0618
                 editor = Editor.CreateEditor(container);
 			}
 

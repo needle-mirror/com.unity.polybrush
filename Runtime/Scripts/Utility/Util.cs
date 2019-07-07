@@ -133,6 +133,40 @@ namespace UnityEngine.Polybrush
 		}
 
         /// <summary>
+        /// Create a dictionnary with keys created from T values (from sublists items) and the value equal to the index of the top list
+        /// Note that the function must receive unique values on sublists
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="lists"></param>
+        /// <returns></returns>
+        internal static Dictionary<T, int> GetCommonLookup<T>(this T[][] lists)
+        {
+            Dictionary<T, int> lookup = new Dictionary<T, int>();
+
+            int index = 0;
+
+            foreach (var kvp in lists)
+            {
+                if (kvp == null) continue;
+
+                foreach (var val in kvp)
+                {
+                    if (lookup.ContainsKey(val))
+                    {
+                        Debug.LogWarning("Error, duplicated values as keys");
+                        return null;
+                    }
+                    lookup.Add(val, index);
+                }
+
+                index++;
+            }
+
+            return lookup;
+        }
+
+
+        /// <summary>
         /// Lerp between 2 colors using RGB.
         /// </summary>
         /// <param name="lhs"></param>

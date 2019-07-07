@@ -107,6 +107,7 @@ namespace UnityEditor.Polybrush
             EditorGUILayout.LabelField(Styles.brushLoadoutLabel);
 
             Rect backGroundRect = EditorGUILayout.BeginVertical(PrefabPaletteEditor.paletteStyle);
+            backGroundRect.width = EditorGUIUtility.currentViewWidth;
             if (count == 0)
             {
                 var r = EditorGUILayout.BeginVertical(GUILayout.Height(thumbSize));
@@ -121,20 +122,22 @@ namespace UnityEditor.Polybrush
                 EditorGUILayout.EndVertical();
                 return;
             }
-
-            const int margin_x = 8;
+            
             const int pad = 4;
             int size = thumbSize + pad;
-            float width = EditorGUIUtility.currentViewWidth;
-            int container_width = (int)Mathf.Floor(EditorGUIUtility.currentViewWidth) - (margin_x * 2);
+            backGroundRect.x += 8;
+            backGroundRect.y += 4;
+            // The backgroundRect is currently as wide as the current view.
+            // Adjust it to take the size of the vertical scrollbar and padding into account.
+            backGroundRect.width -= (20 + (int)GUI.skin.verticalScrollbar.fixedWidth);
+            // size variable will not take into account the padding to the right of all the thumbnails,
+            // therefore it needs to be substracted from the width.
+            int container_width = ((int)Mathf.Floor(backGroundRect.width) - (pad + 1));
             int columns = (int)Mathf.Floor(container_width / size);
             if (columns == 0) columns = 1;
             int rows = count / columns + (count % columns == 0 ? 0 : 1);
             if (rows < 1) rows = 1;
 
-            backGroundRect.x += 4;
-            backGroundRect.y += 4;
-            backGroundRect.width -= 8;
             backGroundRect.height = 8 + rows * thumbSize + (rows - 1) * pad;
             EditorGUI.DrawRect(backGroundRect, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
 
@@ -142,7 +145,7 @@ namespace UnityEditor.Polybrush
 
             for (int i = 0; i < rows; i++)
             {
-                EditorGUILayout.BeginHorizontal();
+                var horizontalRect = EditorGUILayout.BeginHorizontal();
                 for (int j = 0; j < columns; j++)
                 {
                     LoadoutInfo loadoutInfo = m_CurrentLoadouts[currentIndex];
@@ -150,7 +153,8 @@ namespace UnityEditor.Polybrush
                     SerializedProperty prefabs = prefabEditor.prefabs;
                     SerializedProperty prefab = prefabs.GetArrayElementAtIndex(loadoutInfo.palette.FindIndex(loadoutInfo.prefab));
 
-                    DrawSingleLoadout(prefab, thumbSize, loadoutInfo);
+                    var previewRectXPos = pad + j * size + horizontalRect.x;
+                    DrawSingleLoadout(prefab, thumbSize, loadoutInfo, previewRectXPos, horizontalRect.y);
                     if (j != columns - 1)
                         GUILayout.Space(pad);
                     currentIndex++;
@@ -176,11 +180,11 @@ namespace UnityEditor.Polybrush
         /// <param name="loadout">The loadout being drawn</param>
         /// <param name="thumbSize">Size of the preview</param>
         /// <param name="infos">additionnal infos about the loadout being drawn (parent prefab palette and index in it)</param>
-        void DrawSingleLoadout(SerializedProperty loadout, int thumbSize, LoadoutInfo infos)
+        void DrawSingleLoadout(SerializedProperty loadout, int thumbSize, LoadoutInfo infos, float x, float y)
         {
             var editor = prefabPaletteEditors[infos.palette];
             editor.serializedObject.Update();
-            Rect r = EditorGUILayout.BeginVertical(GUILayout.Width(thumbSize), GUILayout.Height(thumbSize));
+            Rect r = new Rect(x, y, thumbSize, thumbSize);
 
             // Texture Preview
             Texture2D preview = PreviewsDatabase.GetAssetPreview(loadout.FindPropertyRelative("gameObject").objectReferenceValue);
@@ -203,8 +207,7 @@ namespace UnityEditor.Polybrush
             r.x += pad;
             r.width = thumbSize - (2 * pad);
             var prefabOccurence = loadout.FindPropertyRelative("settings").FindPropertyRelative("m_Strength");
-            prefabOccurence.floatValue = GUI.HorizontalSlider(r, prefabOccurence.floatValue, 0, 100);
-            EditorGUILayout.EndVertical();
+            prefabOccurence.floatValue = GUI.HorizontalSlider(r, prefabOccurence.floatValue, BrushModePrefab.k_PrefabOccurrenceMin, BrushModePrefab.k_PrefabOccurrenceMax);
 
             editor.serializedObject.ApplyModifiedProperties();
         }

@@ -1,8 +1,6 @@
 using UnityEngine;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Collections.Generic;
-using UnityEngine.Polybrush;
 
 namespace UnityEditor.Polybrush
 {
@@ -11,20 +9,6 @@ namespace UnityEditor.Polybrush
     /// </summary>
     internal static class PolyShaderUtil
 	{
-        /// <summary>
-        /// Attempt to read the shader source code to a string.  
-        /// </summary>
-        /// <param name="material">The material we want it's shader to be read</param>
-        /// <returns>If source can't be found (built-in shaders are in binary bundles)
-        /// an empty string is returned.</returns>
-        internal static string GetSource(Material material)
-		{
-			if(material == null || material.shader == null)
-				return null;
-
-            return GetSource(material.shader);
-        }
-
 		internal static string GetSource(Shader shader)
 		{
 			string path = AssetDatabase.GetAssetPath(shader);
@@ -81,44 +65,6 @@ namespace UnityEditor.Polybrush
 			}
 
 			return null;
-		}
-
-        /// <summary>
-        /// Loads AttributeLayout data from a shader.  Checks for both legacy (define Z_TEXTURE_CHANNELS) and
-        /// .pbs.json metadata.
-        /// </summary>
-        /// <param name="material"></param>
-        /// <param name="attribContainer"></param>
-        /// <returns></returns>
-        internal static bool GetMeshAttributes(Material material, out AttributeLayoutContainer attribContainer)
-		{
-			attribContainer = null;
-
-			if(material == null)
-				return false;
-
-            // first search for json, then fall back on legacy
-            if (ShaderMetaDataUtility.FindMeshAttributesForShader(material.shader, out attribContainer))
-            {
-				Dictionary<string, int> shaderProperties = new Dictionary<string, int>();
-
-				for(int i = 0; i < ShaderUtil.GetPropertyCount(material.shader); i++)
-					shaderProperties.Add(ShaderUtil.GetPropertyName(material.shader, i), i);
-
-				foreach(AttributeLayout a in attribContainer.attributes)
-				{
-					int index = -1;
-
-					if(shaderProperties.TryGetValue(a.propertyTarget, out index))
-					{
-						if(ShaderUtil.GetPropertyType(material.shader, index) == ShaderUtil.ShaderPropertyType.TexEnv)
-							a.previewTexture = (Texture2D) material.GetTexture(a.propertyTarget);
-					}
-				}
-
-				return true;
-			}
-			return false;
 		}
     }	
 }

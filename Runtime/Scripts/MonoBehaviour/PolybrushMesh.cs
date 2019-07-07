@@ -1,4 +1,7 @@
-﻿namespace UnityEngine.Polybrush
+﻿using System;
+using UnityEditor;
+
+namespace UnityEngine.Polybrush
 {
     /// <summary>
     /// Script that will be attached at all time on any polybrush object
@@ -8,9 +11,21 @@
     [ExecuteInEditMode]
     internal class PolybrushMesh : MonoBehaviour
     {
+        internal enum Mode
+        {
+            Mesh,
+            AdditionalVertexStream
+        }
+
         internal static class Styles
         {
             internal const string k_VertexMismatchStringFormat = "Warning! The GameObject \"{0}\" cannot apply it's 'Additional Vertex Streams' mesh, because it's base mesh has changed and has a different vertex count.";
+        }
+
+        internal enum ObjectType
+        {
+            Mesh,
+            SkinnedMesh
         }
 
         /// <summary>
@@ -64,11 +79,17 @@
 
         //seriazlied polymesh stored on the component
         [SerializeField]
-        private PolyMesh m_PolyMesh;
+        PolyMesh m_PolyMesh;
 
         //mesh ref from the skinmesh asset, if any
         [SerializeField]
-        private Mesh m_SkinMeshRef;
+        Mesh m_SkinMeshRef;
+
+        [SerializeField]
+        Mesh m_OriginalMeshObject;
+
+        [SerializeField]
+        Mode m_Mode;
 
         MeshComponentsCache m_ComponentsCache;
 
@@ -130,9 +151,24 @@
             }
         }
 
-        //because this script can't access to all editor stuff (due to assembly structure), there is no way it can retrieve the advs state by itself
-        //that's why I've put a static here that will be filled when changing the setting
+        internal ObjectType type
+        {
+            get
+            {
+                if (m_ComponentsCache.SkinnedMeshRenderer)
+                    return ObjectType.SkinnedMesh;
+                return ObjectType.Mesh;
+            }
+        }
+
+        [Obsolete()]
         internal static bool s_UseADVS { private get; set; }
+
+        internal Mode mode
+        {
+            get { return m_Mode; }
+            set { UpdateMode(value); }
+        }
         
         internal Mesh skinMeshRef
         {
@@ -144,6 +180,11 @@
             {
                 m_SkinMeshRef = value;
             }
+        }
+
+        internal Mesh sourceMesh
+        {
+            get { return m_OriginalMeshObject; }
         }
 
         bool m_Initialized = false;
@@ -176,12 +217,18 @@
             Mesh mesh = null;
 
             if (m_ComponentsCache.MeshFilter != null)
+            {
                 mesh = m_ComponentsCache.MeshFilter.sharedMesh;
+                if (m_OriginalMeshObject == null)
+                    m_OriginalMeshObject = mesh;
+            }
             else if (m_ComponentsCache.SkinnedMeshRenderer != null)
                 mesh = m_ComponentsCache.SkinnedMeshRenderer.sharedMesh;
 
             if (!polyMesh.IsValid() && mesh)
                 SetMesh(mesh);
+            else if (polyMesh.IsValid())
+                SetMesh(polyMesh.ToUnityMesh());
 
             m_Initialized = true;
         }
@@ -193,6 +240,7 @@
         internal void SetMesh(Mesh unityMesh)
         {
             m_PolyMesh.InitializeWithUnityMesh(unityMesh);
+            SynchronizeWithMeshRenderer();
         }
 
         internal void SetAdditionalVertexStreams(Mesh vertexStreams)
@@ -204,7 +252,7 @@
         /// <summary>
         /// Update GameObject's renderers with PolybrushMesh data.
         /// </summary>
-        public void SynchronizeWithMeshRenderer()
+        internal void SynchronizeWithMeshRenderer()
         {
             if (m_PolyMesh == null)
                 return;
@@ -214,10 +262,16 @@
             if (m_ComponentsCache.SkinnedMeshRenderer != null && skinMeshRef != null)
                 UpdateSkinMesh();
 
-            if (!s_UseADVS)
+            if (mode == Mode.Mesh)
             {
                 if (m_ComponentsCache.MeshFilter != null)
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        Undo.RecordObject(m_ComponentsCache.MeshFilter, "Assign new mesh to MeshFilter");
+#endif
                     m_ComponentsCache.MeshFilter.sharedMesh = m_PolyMesh.ToUnityMesh();
+                }
                 SetAdditionalVertexStreamsOnRenderer(null);
             }
             else
@@ -242,7 +296,7 @@
         internal bool CanApplyAdditionalVertexStreams()
         {
             // If "Use additional vertex streams is enabled in Preferences."
-            if (s_UseADVS)
+            if (mode == Mode.AdditionalVertexStream)
             {
                 if (m_ComponentsCache.MeshFilter != null && m_ComponentsCache.MeshFilter.sharedMesh != null)
                 {
@@ -252,7 +306,6 @@
             }
             return true;
         }
-        
 
         /// <summary>
         /// Takes the mesh from the skinmesh in the asset (saved by EditableObject during creation) and apply skinmesh information to the regular stored mesh.
@@ -265,6 +318,10 @@
             Mesh generatedMesh = m_PolyMesh.ToUnityMesh();
             generatedMesh.boneWeights = mesh.boneWeights;
             generatedMesh.bindposes = mesh.bindposes;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                Undo.RecordObject(m_ComponentsCache.SkinnedMeshRenderer, "Assign new mesh to SkinnedMeshRenderer");
+#endif
             m_ComponentsCache.SkinnedMeshRenderer.sharedMesh = generatedMesh;
         }
 
@@ -283,21 +340,53 @@
             SetAdditionalVertexStreamsOnRenderer(null);
         }
 
+        void UpdateMode(Mode newMode)
+        {
+            // SkinnedMesh can only work in baked mode.
+            // It doesn't support Additional Vertex Streams.
+            if (type == ObjectType.SkinnedMesh && m_Mode != Mode.Mesh)
+            {
+                m_Mode = Mode.Mesh;
+                return;
+            }
+
+            m_Mode = newMode;
+            if (mode == Mode.AdditionalVertexStream)
+            {
+                if (m_ComponentsCache.MeshFilter != null)
+                {
+#if UNITY_EDITOR
+                    if (!Application.isPlaying)
+                        Undo.RecordObject(m_ComponentsCache.MeshFilter, "Assign new mesh to MeshFilter");
+#endif
+                    m_ComponentsCache.MeshFilter.sharedMesh = m_OriginalMeshObject;
+                }
+                SetMesh(m_PolyMesh.ToUnityMesh());
+            }
+            else if (mode == Mode.Mesh)
+            {
+                SetMesh(m_PolyMesh.ToUnityMesh());
+            }
+        }
+
         void OnEnable()
         {
             m_Initialized = false;
-            
+
             if (!isInitialized)
                 Initialize();
-
-            if (m_PolyMesh != null && m_PolyMesh.IsValid())
-                SynchronizeWithMeshRenderer();
         }
 
         void OnDestroy()
-        {
-            //when destroying the component, remove the advs from the mesh renderer
-            SetAdditionalVertexStreamsOnRenderer(null);
+        { 
+            // Time.frameCount is zero when loading scenes in the Editor. It's the only way I could figure to
+            // differentiate between OnDestroy invoked from user delete & editor scene loading.
+            if (Application.isEditor &&
+                !Application.isPlaying &&
+                Time.frameCount > 0)
+            {
+                SetMesh(sourceMesh);
+            }
         }
     }
 }

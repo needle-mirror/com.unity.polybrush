@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using UnityEngine;
 using UnityEngine.Polybrush;
 
@@ -6,6 +7,8 @@ namespace UnityEditor.Polybrush
 {
     static class ShaderMetaDataUtility
     {
+#pragma warning disable 0618
+        [Obsolete("Format is deprecated. Please use ShaderMetaDataUtility.LoadShaderMetaData and ShaderMetaDataUtility.SaveShaderMetaData.")]
         const string SHADER_ATTRIB_FILE_EXTENSION = "pbs.json";
 
         /// <summary>
@@ -13,6 +16,7 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="shader">Shader associated with the metadata</param>
         /// <returns>The path found, null if not found.</returns>
+        [Obsolete("Please use ShaderMetaDataUtility.LoadShaderMetaData.")]
         internal static string FindPolybrushMetaDataForShader(Shader shader)
         {
             if (shader == null)
@@ -53,6 +57,7 @@ namespace UnityEditor.Polybrush
         /// <param name="path">Path of the file to read from</param>
         /// <param name="container">AttributeLayoutContainer retrieved from the json</param>
         /// <returns>true if it worked, false if the file doesn't exist or is empty</returns>
+        [Obsolete("Please use ShaderMetaDataUtility.LoadShaderMetaData.")]
         public static bool TryReadAttributeLayoutsFromJsonFile(string path, out AttributeLayoutContainer container)
         {
             container = null;
@@ -73,6 +78,7 @@ namespace UnityEditor.Polybrush
             return true;
         }
 
+        [Obsolete("Please use ShaderMetaDataUtility.LoadShaderMetaData.")]
         public static bool TryReadAttributeLayoutsFromJson(string jsonText, out AttributeLayoutContainer container)
         {
             container = ScriptableObject.CreateInstance<AttributeLayoutContainer>();
@@ -90,6 +96,7 @@ namespace UnityEditor.Polybrush
         /// <param name="overwrite">overwrite data if already existing</param>
         /// <param name="logErrors">log errors or not</param>
         /// <returns>Returns the path written to on success, null otherwise.</returns>
+        [Obsolete("Please use ShaderMetaDataUtility.SaveShaderMetaData.")]
         internal static string SaveMeshAttributesData(AttributeLayoutContainer container, bool overwrite = false, bool logErrors = true)
         {
             if (container == null) return string.Empty;
@@ -102,9 +109,10 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="shader">Shader associated with the metadata</param>
         /// <param name="attributes">Metadata to write</param>
-        /// <param name="overwrite">Will overwrite if already existing file</param>
-        /// <param name="logErrors">Log errors or not</param>
+        /// <param name="overwrite">Will overwrite if already existing file</param>param>
+        /// <param name="logErrors">Log errors or not</
         /// <returns></returns>
+        [Obsolete("Please use ShaderMetaDataUtility.SaveShaderMetaData.")]
         internal static string SaveMeshAttributesData(Shader shader, AttributeLayout[] attributes, bool overwrite = false, bool logErrors = true)
         {
             if (shader == null || attributes == null)
@@ -183,6 +191,7 @@ namespace UnityEditor.Polybrush
         /// <param name="shader">Shader associated with the metadata</param>
         /// <param name="attributes">result if any metadata found</param>
         /// <returns></returns>
+        [Obsolete("Please use ShaderMetaDataUtility.LoadShaderMetaData.")]
         internal static bool FindMeshAttributesForShader(Shader shader, out AttributeLayoutContainer attributes)
         {
             attributes = null;
@@ -206,9 +215,94 @@ namespace UnityEditor.Polybrush
             return false;
         }
 
+        [Obsolete("Method is deprecated. Please use ShaderMetaDataUtility.LoadShaderMetaData and ShaderMetaDataUtility.SaveShaderMetaData.")]
         static void ResolveShaderReference(AttributeLayoutContainer container)
         {
             container.shader = Shader.Find(container.shaderPath);
+        }
+
+        /// <summary>
+        /// Store the shader's attributes in the new format.
+        /// Erase the .pbs.json on success.
+        /// </summary>
+        internal static void ConvertMetaDataToNewFormat(Shader shader)
+        {
+            if (shader == null)
+                throw new NullReferenceException("shader");
+
+            string path = ShaderMetaDataUtility.FindPolybrushMetaDataForShader(shader);
+
+            // If not null, it means we have data stored with the old format.
+            // Proceed to conversion.
+            if (path != null)
+            {
+                AttributeLayoutContainer attributesContainer = ScriptableObject.CreateInstance<AttributeLayoutContainer>();
+                ShaderMetaDataUtility.TryReadAttributeLayoutsFromJsonFile(path, out attributesContainer);
+                if (attributesContainer != null)
+                {
+                    ShaderMetaDataUtility.SaveShaderMetaData(shader, attributesContainer);
+                    FileUtil.DeleteFileOrDirectory(path);
+
+                    AssetDatabase.Refresh();
+                }
+            }
+        }
+#pragma warning restore 0618
+
+        /// <summary>
+        /// Check if the given shader is an asset we can work with.
+        /// We will verify if it comes from the project by checking its importer.
+        /// </summary>
+        /// <param name="shader"></param>
+        /// <returns></returns>
+        internal static bool IsValidShader(Shader shader)
+        {
+            if (shader == null)
+                throw new ArgumentNullException("shader");
+
+            string path = AssetDatabase.GetAssetPath(shader);
+            AssetImporter importer = AssetImporter.GetAtPath(path);
+
+            return importer != null;
+        }
+
+        /// <summary>
+        /// Deserialize the shader's attributes from UserData in the shader's importer.
+        /// If none exists, it returns a new AttributeLayoutContaine instance.
+        /// </summary>
+        /// <param name="shader"></param>
+        /// <returns></returns>
+        internal static AttributeLayoutContainer LoadShaderMetaData(Shader shader)
+        {
+            if (shader == null)
+                throw new ArgumentNullException("shader");
+
+            string path = AssetDatabase.GetAssetPath(shader);
+            AssetImporter importer = AssetImporter.GetAtPath(path);
+
+            AttributeLayoutContainer data = AttributeLayoutContainer.Create(shader, null);
+            JsonUtility.FromJsonOverwrite(importer.userData, data);
+            return data;
+        }
+
+        /// <summary>
+        /// Serialize the shader's attributes as UserData in the shader's importer.
+        /// </summary>
+        /// <param name="shader"></param>
+        /// <param name="attributes"></param>
+        internal static void SaveShaderMetaData(Shader shader, AttributeLayoutContainer attributes)
+        {
+            if (shader == null)
+                throw new ArgumentNullException("shader");
+            
+            if (attributes == null)
+                throw new ArgumentNullException("attributes");
+            
+            string path = AssetDatabase.GetAssetPath(shader);
+            AssetImporter importer = AssetImporter.GetAtPath(path);
+
+            importer.userData = JsonUtility.ToJson(attributes);
+            importer.SaveAndReimport();
         }
     }
 }

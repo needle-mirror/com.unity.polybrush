@@ -163,15 +163,12 @@ namespace UnityEditor.Polybrush
 				}
 				else
 				{
-					AssetDatabase.CreateAsset(mesh, save_path);
+                    Mesh newMesh = new Mesh();
+                    PolyMeshUtility.Copy(newMesh, mesh);
+                    AssetDatabase.CreateAsset(newMesh, save_path);
 				}
 
 				AssetDatabase.Refresh();
-
-				if(meshFilter != null)
-					meshFilter.sharedMesh = (Mesh)AssetDatabase.LoadAssetAtPath(save_path, typeof(Mesh));
-				else if(skinnedMeshRenderer != null)
-					skinnedMeshRenderer.sharedMesh = (Mesh)AssetDatabase.LoadAssetAtPath(save_path, typeof(Mesh));
 
 				return true;
 			}
@@ -226,24 +223,41 @@ namespace UnityEditor.Polybrush
 
 			if(asset == null)
 			{
-				asset = ScriptableObject.CreateInstance<T>();
-				asset.SetDefaultValues();
-				EditorUtility.SetDirty(asset);
-
-				string folder = UserAssetDirectory;
-
-				if(!Directory.Exists(folder))
-					Directory.CreateDirectory(folder);
-
-                string subfolder = folder + asset.assetsFolder;
-                if (!Directory.Exists(subfolder))
-                    Directory.CreateDirectory(subfolder);
-
-                AssetDatabase.CreateAsset(asset, subfolder + typeof(T).Name + "-Default.asset");
+                return CreateNew<T>();
 			}
 
 			return asset;
 		}
+
+        /// <summary>
+        /// Create a new asset at path relative to the product folder.
+        /// </summary>
+        /// <typeparam name="T">>the type to create, must inherit from ScriptableObject and implement IHasDefault and ICustomSettings</typeparam>
+        /// <returns>A new object T with default values set by IHasDefault.</returns>
+        internal static T CreateNew<T>() where T : ScriptableObject, IHasDefault, ICustomSettings
+        {
+            T asset = ScriptableObject.CreateInstance<T>();
+            asset.SetDefaultValues();
+            EditorUtility.SetDirty(asset);
+
+            string folder = UserAssetDirectory;
+
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            string subfolder = folder + asset.assetsFolder;
+            if (!Directory.Exists(subfolder))
+                Directory.CreateDirectory(subfolder);
+
+            string assetPath = AssetDatabase.GenerateUniqueAssetPath(subfolder + typeof(T).Name + "-Default.asset");
+
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                return null;
+            }
+            AssetDatabase.CreateAsset(asset, assetPath);
+            return asset;
+        }
 
         /// <summary>
         /// Fetch all assets of type `T`
@@ -363,8 +377,7 @@ namespace UnityEditor.Polybrush
                 newComponent.Initialize();
             }
 
-            PolybrushMesh.s_UseADVS = true;
-
+            newComponent.mode = PolybrushMesh.Mode.AdditionalVertexStream;
             newComponent.SetMesh(PolyMeshUtility.DeepCopy(mf.sharedMesh));
             newComponent.SetAdditionalVertexStreams(mesh);
 

@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public class PolyAsset : ScriptableObject
 {
-    void Reset()
+    protected virtual void Reset()
     {
         string path = AssetDatabase.GetAssetPath(this.GetInstanceID());
         this.name = Path.GetFileNameWithoutExtension(path);

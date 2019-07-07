@@ -36,9 +36,6 @@ namespace UnityEditor.Polybrush
 
 				if(icon == null)
 				{
-// #if Z_DEBUG
-					Debug.LogWarning("failed to find icon: " + fullPath);
-// #endif
 					m_icons.Add(nameWithoutExtension, null);
 					return null;
 				}

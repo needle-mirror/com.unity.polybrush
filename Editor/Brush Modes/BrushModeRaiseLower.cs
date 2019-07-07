@@ -33,7 +33,7 @@ namespace UnityEditor.Polybrush
 
 		Vector3[] vertices = null;
 		Dictionary<int, Vector3> normalLookup = null;
-		List<List<int>> commonVertices = null;
+		int[][] commonVertices = null;
 		int commonVertexCount;
 
 		protected override string DocsLink { get { return PrefUtility.documentationSculptBrushLink; } }
@@ -71,7 +71,7 @@ namespace UnityEditor.Polybrush
             vertices = target.editMesh.vertices;
 			normalLookup = PolyMeshUtility.GetSmoothNormalLookup(target.editMesh);
 			commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
-			commonVertexCount = commonVertices.Count;
+			commonVertexCount = commonVertices.Length;
 		}
 
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
@@ -94,7 +94,8 @@ namespace UnityEditor.Polybrush
 
 			PolyMesh mesh = target.editableObject.editMesh;
 
-			for(int ri = 0; ri < rayCount; ri++)
+            // rayCount could be different from brushNormalOnBeginApply.Count with some shapes (example: sphere).
+			for(int ri = 0; ri < rayCount && ri < brushNormalOnBeginApply.Count; ri++)
 			{
 				PolyRaycastHit hit = target.raycastHits[ri];
 
@@ -126,14 +127,15 @@ namespace UnityEditor.Polybrush
 
 					Vector3 pos = vertices[index] + n * (hit.weights[index] * maxMoveDistance * scale);
 
-					List<int> indices = commonVertices[i];
+					int[] indices = commonVertices[i];
 
-					for(int it = 0; it < indices.Count; it++)
+					for(int it = 0; it < indices.Length; it++)
 						vertices[indices[it]] = pos;
 				}
 			}
 
 			mesh.vertices = vertices;
+            target.editableObject.modifiedChannels |= MeshChannel.Position;
 
 			// different than setting weights on temp component,
 			// which is what BrushModeMesh.OnBrushApply does.
@@ -142,5 +144,66 @@ namespace UnityEditor.Polybrush
 
 			base.OnBrushApply(target, settings);
 		}
-	}
+
+        /// <summary>
+        /// Draw gizmos taking into account handling of normal by raiser lower brush mode.
+        /// </summary>
+        /// <param name="target">Current target Object</param>
+        /// <param name="settings">Current brush settings</param>
+        internal override void DrawGizmos(BrushTarget target, BrushSettings settings)
+        {
+            UpdateBrushGizmosColor();
+            int rayCount = target.raycastHits.Count;
+            for (int ri = 0; ri < rayCount; ri++)
+            {
+                PolyRaycastHit hit = target.raycastHits[ri];
+
+                Vector3 normal = hit.normal;
+                switch (s_RaiseLowerDirection.value)
+                {
+                    case PolyDirection.BrushNormal:
+                        {
+                            if (s_UseFirstNormalVector && brushNormalOnBeginApply.Count > ri)
+                                normal = brushNormalOnBeginApply[ri];
+                        }
+                        break;
+                    case PolyDirection.Up:
+                    case PolyDirection.Right:
+                    case PolyDirection.Forward:
+                        {
+                            normal = DirectionUtil.ToVector3(s_RaiseLowerDirection);
+                        }
+                        break;
+                    case PolyDirection.VertexNormal:
+                        {
+                            //For vertex normal mode we take the vertex with the highest weight to compute the normal
+                            //if non has enough we take the hit normal.
+                            float highestWeight = .0001f;
+                            int highestIndex = -1;
+                            for (int i = 0; i < commonVertexCount; i++)
+                            {
+                                int index = commonVertices[i][0];
+
+                                if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+                                    continue;
+
+                                if (hit.weights[index] > highestWeight)
+                                {
+                                    highestIndex = index;
+                                }
+                            }
+
+                            if (highestIndex != -1)
+                            {
+                                normal = normalLookup[highestIndex];
+                            }
+                        }
+                        break;
+                };
+
+                normal = settings.isUserHoldingControl ? normal * -1f : normal;
+                PolyHandles.DrawBrush(hit.position, normal, settings, target.localToWorldMatrix, innerColor, outerColor);
+            }
+        }
+    }
 }

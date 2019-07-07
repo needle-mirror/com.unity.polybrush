@@ -4,6 +4,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
+using System;
 
 namespace UnityEngine.Polybrush
 {
@@ -13,10 +14,12 @@ namespace UnityEngine.Polybrush
     [ExecuteInEditMode]
 	internal class OverlayRenderer : ZoomOverride
 	{
-		// HideFlags.DontSaveInEditor isn't exposed for whatever reason, so do the bit math on ints
-		// and just cast to HideFlags.
-		// HideFlags.HideInHierarchy | HideFlags.DontSaveInEditor | HideFlags.NotEditable
-		HideFlags SceneCameraHideFlags = (HideFlags) (1 | 4 | 8);
+        static Vector3[] s_vertexMeshVerticesBuffer = new Vector3[4096];
+
+        // HideFlags.DontSaveInEditor isn't exposed for whatever reason, so do the bit math on ints
+        // and just cast to HideFlags.
+        // HideFlags.HideInHierarchy | HideFlags.DontSaveInEditor | HideFlags.NotEditable
+        HideFlags SceneCameraHideFlags = (HideFlags) (1 | 4 | 8);
 
 		[SerializeField] private Material _overlayMaterial;
 		[SerializeField] private Material _billboardMaterial;
@@ -25,7 +28,7 @@ namespace UnityEngine.Polybrush
 		internal Gradient gradient = new Gradient();
         internal float vertexBillboardSize = 2f;
 
-        List<List<int>> common = null;
+        int[][] common = null;
 		Color[] w_colors;
 		Color[] v_colors;
 
@@ -105,23 +108,25 @@ namespace UnityEngine.Polybrush
 
 			if(drawVertexBillboards)
 			{
-				int len = System.Math.Min(ushort.MaxValue / 4, common.Count);
+				int len = System.Math.Min(ushort.MaxValue / 4, common.Length);
 
 				if( vertexMesh != null )
 				{
-					Vector3[] v2 = new Vector3[ len * 4 ];
+                    int bufferSize = len * 4;
+                    if (s_vertexMeshVerticesBuffer.Length != bufferSize)
+                        Array.Resize<Vector3>(ref s_vertexMeshVerticesBuffer, bufferSize);
 
 					for(int i = 0; i < len; i++)
 					{
 						int ind = common[i][0];
 
-						v2[i * 4 + 0] = v[ind];
-						v2[i * 4 + 1] = v[ind];
-						v2[i * 4 + 2] = v[ind];
-						v2[i * 4 + 3] = v[ind];
+                        s_vertexMeshVerticesBuffer[i * 4 + 0] = v[ind];
+                        s_vertexMeshVerticesBuffer[i * 4 + 1] = v[ind];
+                        s_vertexMeshVerticesBuffer[i * 4 + 2] = v[ind];
+                        s_vertexMeshVerticesBuffer[i * 4 + 3] = v[ind];
 					}
 
-					vertexMesh.vertices = v2;
+					vertexMesh.vertices = s_vertexMeshVerticesBuffer;
 				}
 			}
 #endif
@@ -147,13 +152,14 @@ namespace UnityEngine.Polybrush
 
 			for(int ind = 0; ind < vertexCount; ind++)
 			{
-				if(weights[ind] < 0.0001f)
+                float weight = weights[ind];
+				if (weight < 0.0001f)
 				{
 					w_colors[ind].a = 0f;
 					continue;
 				}
 
-				float strength = 1f - weights[ind];
+				float strength = 1f - weight;
 
 				if(strength < .001f)
 				{
@@ -162,16 +168,17 @@ namespace UnityEngine.Polybrush
 				else
 				{
 					w_colors[ind] = gradient.Evaluate(strength);
-					w_colors[ind].a *= MIN_ALPHA + (ALPHA_RANGE * (1f-strength));
+					w_colors[ind].a *= MIN_ALPHA + (ALPHA_RANGE * (1f - strength));
 				}
 			}
 
 			wireframeMesh.colors = w_colors;
 			wireframeMesh.UploadMeshData(false);
 
-			if(drawVertexBillboards)
+			if (drawVertexBillboards)
 			{
-				for(int i = 0; i < vertexMesh.vertexCount; i+=4)
+                int vCount = vertexMesh.vertexCount;
+				for(int i = 0; i < vCount; i+=4)
 				{
 					int ind = i / 4;
 					v_colors[i+0] = w_colors[common[ind][0]];

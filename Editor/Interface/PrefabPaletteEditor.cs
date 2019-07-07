@@ -78,37 +78,38 @@ namespace UnityEditor.Polybrush
             serializedObject.Update();
             int count = prefabs != null ? prefabs.arraySize : 0;
             Rect dropDownZone = EditorGUILayout.BeginVertical(paletteStyle);
-            Rect backGroundRect = new Rect(dropDownZone);
             dropDownZone.width = EditorGUIUtility.currentViewWidth;
+            Rect backGroundRect = new Rect(dropDownZone);
 
             if (count != 0)
             {
-                const int margin_x = 8;
                 const int pad = 4;
                 int size = thumbSize + pad;
-                int container_width = (int)Mathf.Floor(EditorGUIUtility.currentViewWidth) - (margin_x * 2);
+                backGroundRect.x += 8;
+                backGroundRect.y += 4;
+                // The backgroundRect is currently as wide as the current view.
+                // Adjust it to take the size of the vertical scrollbar and padding into account.
+                backGroundRect.width -= (20 + (int)GUI.skin.verticalScrollbar.fixedWidth);
+                // size variable will not take into account the padding to the right of all the thumbnails,
+                // therefore it needs to be substracted from the width.
+                int container_width = ((int)Mathf.Floor(backGroundRect.width) - (pad + 1));
                 int columns = (int)Mathf.Floor(container_width / size);
                 int rows = count / columns + (count % columns == 0 ? 0 : 1);
                 if (rows < 1) rows = 1;
 
-                backGroundRect.x += 8;
-                backGroundRect.y += 4;
-                backGroundRect.width -= 16;
                 backGroundRect.height = 8 + rows * thumbSize + (rows - 1) * pad;
                 EditorGUI.DrawRect(backGroundRect, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
 
                 int currentIndex = 0;
-
                 for (int i = 0; i < rows; i++)
                 {
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Space(pad);
+                    var horizontalRect = EditorGUILayout.BeginHorizontal();
                     for (int j = 0; j < columns; j++)
                     {
+                        GUILayout.Space(pad);
                         var prefab = prefabs.GetArrayElementAtIndex(currentIndex);
-                        DrawPrefabPreview(prefab, currentIndex, thumbSize);
-                        if (j != columns - 1)
-                            GUILayout.Space(pad);
+                        var previewRectXPos = pad + j * size + horizontalRect.x;
+                        DrawPrefabPreview(prefab, currentIndex, thumbSize, previewRectXPos, horizontalRect.y);
                         currentIndex++;
                         if (currentIndex >= count)
                             break;
@@ -210,9 +211,9 @@ namespace UnityEditor.Polybrush
         /// <param name="prefab">Prefab being previewed</param>
         /// <param name="index">index of the prefab in `prefabs`</param>
         /// <param name="thumbSize">Size of the preview texture</param>
-        private void DrawPrefabPreview(SerializedProperty prefab,int index, int thumbSize)
+        private void DrawPrefabPreview(SerializedProperty prefab, int index, int thumbSize, float x, float y)
         {
-            Rect r = EditorGUILayout.BeginVertical(GUILayout.Width(thumbSize), GUILayout.Height(thumbSize));
+            Rect r = new Rect(x, y, thumbSize, thumbSize);
             Rect rightClickZone = new Rect(r);
 
             // Texture Preview
@@ -230,7 +231,7 @@ namespace UnityEditor.Polybrush
             }
 
             EditorGUI.DrawPreviewTexture(r, preview);
-            
+
             // Those numbers were obtained by empirical experimentation
             r.x += thumbSize - 17;
             r.y += thumbSize - 17;
@@ -241,7 +242,9 @@ namespace UnityEditor.Polybrush
             Event e = Event.current;
             bool rightClick = (e.type == EventType.MouseDown || e.type == EventType.ContextClick) && rightClickZone.Contains(e.mousePosition) && e.button == 1;
             bool b1 = GUI.Toggle(r, isLoaded, "");
-            bool b2 = GUILayout.Button("", GUIStyle.none, GUILayout.Width(thumbSize), GUILayout.Height(thumbSize));
+            // Reducing the width by 1 to ensure the button is not larger than the thumbnail.
+            // Otherwise button is slightly too large and horizontal scrollbar may appear.
+            bool b2 = GUILayout.Button("", GUIStyle.none, GUILayout.Width(thumbSize-1), GUILayout.Height(thumbSize));
             // Set the focus to nothing in case the user want to press delete or backspace key
             // I dont know why but If we don't do that the Textfield with the name of prefab settings never looses focus
             if (b2 || rightClick)
@@ -259,9 +262,9 @@ namespace UnityEditor.Polybrush
                     selected.Clear();
                     selected.Add(index);
                 }
-                EditorGUILayout.EndVertical();
                 return;
-            }else if (shouldopencontextmenu && redrawCounter > rightClickTime)
+            }
+            else if (shouldopencontextmenu && redrawCounter > rightClickTime)
             {
                 loadoutEditor.OpenCopyPasteMenu(new LoadoutInfo(target as PrefabPalette, idx), selected);
                 shouldopencontextmenu = false;
@@ -303,7 +306,6 @@ namespace UnityEditor.Polybrush
 
                 GUI.changed = true;
             }
-            EditorGUILayout.EndVertical();
         }
 
         /// <summary>
@@ -334,7 +336,6 @@ namespace UnityEditor.Polybrush
 
             var settingsBackgroundStyle = new GUIStyle();
             settingsBackgroundStyle.normal.background = EditorGUIUtility.whiteTexture;
-            settingsBackgroundStyle.margin = new RectOffset(2 * pad, 2 * pad, 0, 0);
             settingsBackgroundStyle.padding = new RectOffset(0, 0, 0, 0);
             PolyGUI.PushBackgroundColor(EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
 
@@ -358,10 +359,9 @@ namespace UnityEditor.Polybrush
 
                     using (new GUILayout.HorizontalScope())
                     {
-                        EditorGUILayout.LabelField("Frequency (%) :", GUILayout.ExpandWidth(false));
-                        strength.floatValue = GUILayout.HorizontalSlider(strength.floatValue, 0, 100, GUILayout.ExpandWidth(true));
                         GUI.SetNextControlName("cancelbackspace2" + index);
-                        strength.floatValue = EditorGUILayout.FloatField(strength.floatValue, "textfield", GUILayout.MaxWidth(64));
+                        strength.floatValue = EditorGUILayout.Slider("Frequency (%)", strength.floatValue,
+                            BrushModePrefab.k_PrefabOccurrenceMin, BrushModePrefab.k_PrefabOccurrenceMax, GUILayout.ExpandWidth(true));
                     }
                 }
                 GUILayout.Space(pad);

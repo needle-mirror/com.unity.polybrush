@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Known Issues
 - Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
-- Users can't create prefabs with sculpted or painted meshes if "Use Additional Vertex Streams" is disabled.
+
+## [1.0.0] - 2019-07-08
+### Changes
+- Added support for Unity 2018.4.
+
+- Using Polybrush on an object will always add the PolybrushMesh component.
+
+- PolybrushMesh component now allows you choose how mesh edits are applied (Override Mesh or Additional Vertex Streams).
+
+- Texture Blend Mode: shader setup is now done by clicking the "Configure" button in Texture Blend Mode, and saved into the shader meta file.
+
+- Removed obsolete example files, replaced with basic "Vertex Colored" and "Texture Blend" example shaders, built specifically for Non-SRP, LWRP, and HDRP.
+
+### Bug fixes
+- Fixed crash occuring when users convert from Additional Vertex Streams to Baked mode (and vice-versa).
+- Fixed crash occurring when users undo changes and not using Additional Vertex Streams.
+- Fixed loss of data when not using Additional Vertex Streams and Prefab mode.
+- Fixed Prefab mode not showing data from Polybrush when it opens.
+- Fixed erase action (hold `CTRL`) not removing data for only the selected texture in Texture Blend mode.
+- Fixed brush not showing the visual preview when hovering over meshes until first stroke.
+- Fixed brush not showing the proper visual preview for data removal when holding `CTRL`.
+- Fixed brush direction gizmo not matching the movement vector.
+- Fixed exception appearing sometimes while working with mirrored brushes.
+- Fixed `Reset` action on ColorPalette not properly resetting the data.
+- Fixed console warnings from Overlay and VertexBillboard shaders.
+- Fixed minor UI issues.
 
 ## [1.0.0-preview.17] - 2019-05-13
 

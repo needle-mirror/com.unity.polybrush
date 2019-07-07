@@ -51,5 +51,11 @@ namespace UnityEditor.Polybrush
 		{
 			target.colors = new List<Color>(colors);
 		}
+
+        protected override void Reset()
+        {
+            base.Reset();
+            SetDefaultValues();
+        }
     }
 }

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Profiling;
 
 namespace UnityEngine.Polybrush
 {
@@ -117,75 +118,85 @@ namespace UnityEngine.Polybrush
 
 		private static readonly Color clear = new Color(0,0f,0,0f);
 
-		internal static Mesh CreateVertexBillboardMesh(PolyMesh src, List<List<int>> common)
-		{
-            //null checks
-            if(src == null || common == null)
-            {
+        static readonly Vector2[] k_VertexBillboardUV0Content = new Vector2[]
+        {
+            Vector3.zero,
+            Vector3.right,
+            Vector3.up,
+            Vector3.one
+        };
+
+        static readonly Vector2[] k_VertexBillboardUV2Content = new Vector2[]
+        {
+            -Vector3.up-Vector3.right,
+            -Vector3.up+Vector3.right,
+            Vector3.up-Vector3.right,
+            Vector3.up+Vector3.right,
+        };
+
+        internal static Mesh CreateVertexBillboardMesh(PolyMesh src, int[][] common)
+        {
+            if (src == null || common == null)
                 return null;
+
+            int vertexCount = System.Math.Min(ushort.MaxValue / 4, common.Count());
+
+            Vector3[] positions = new Vector3[vertexCount * 4];
+            Vector2[] uv0       = new Vector2[vertexCount * 4];
+            Vector2[] uv2       = new Vector2[vertexCount * 4];
+            Color[] colors      = new Color[vertexCount * 4];
+            int[] tris          = new int[vertexCount * 6];
+
+            int n = 0;
+            int t = 0;
+
+            Vector3[] v = src.vertices;
+
+            for (int i = 0; i < vertexCount; i++)
+            {
+                int tri = common[i][0];
+
+                positions[t + 0] = v[tri];
+                positions[t + 1] = v[tri];
+                positions[t + 2] = v[tri];
+                positions[t + 3] = v[tri];
+
+                uv0[t + 0] = k_VertexBillboardUV0Content[0];
+                uv0[t + 1] = k_VertexBillboardUV0Content[1];
+                uv0[t + 2] = k_VertexBillboardUV0Content[2];
+                uv0[t + 3] = k_VertexBillboardUV0Content[3];
+
+                uv2[t + 0] = k_VertexBillboardUV2Content[0];
+                uv2[t + 1] = k_VertexBillboardUV2Content[1];
+                uv2[t + 2] = k_VertexBillboardUV2Content[2];
+                uv2[t + 3] = k_VertexBillboardUV2Content[3];
+
+                tris[n + 0] = t + 0;
+                tris[n + 1] = t + 1;
+                tris[n + 2] = t + 2;
+                tris[n + 3] = t + 1;
+                tris[n + 4] = t + 3;
+                tris[n + 5] = t + 2;
+
+                colors[t + 0] = clear;
+                colors[t + 1] = clear;
+                colors[t + 2] = clear;
+                colors[t + 3] = clear;
+
+                t += 4;
+                n += 6;
             }
 
-			int vertexCount = System.Math.Min( ushort.MaxValue / 4, common.Count() );
+            Mesh m = new Mesh();
 
-			Vector3[] positions = new Vector3[vertexCount * 4];
-			Vector2[] uv0 		= new Vector2[vertexCount * 4];
-			Vector2[] uv2 		= new Vector2[vertexCount * 4];
-			Color[] colors 		= new Color[vertexCount * 4];
-			int[] 	  tris 		= new int[vertexCount * 6];
+            m.vertices = positions;
+            m.uv = uv0;
+            m.uv2 = uv2;
+            m.colors = colors;
+            m.triangles = tris;
 
-			int n = 0;
-			int t = 0;
-
-			Vector3 up = Vector3.up;// * .1f;
-			Vector3 right = Vector3.right;// * .1f;
-
-			Vector3[] v = src.vertices;
-
-			for(int i = 0; i < vertexCount; i++)
-			{
-				int tri = common[i][0];
-
-				positions[t+0] = v[tri];
-				positions[t+1] = v[tri];
-				positions[t+2] = v[tri];
-				positions[t+3] = v[tri];
-
-				uv0[t+0] = Vector3.zero;
-				uv0[t+1] = Vector3.right;
-				uv0[t+2] = Vector3.up;
-				uv0[t+3] = Vector3.one;
-
-				uv2[t+0] = -up-right;
-				uv2[t+1] = -up+right;
-				uv2[t+2] =  up-right;
-				uv2[t+3] =  up+right;
-
-				tris[n+0] = t + 0;
-				tris[n+1] = t + 1;
-				tris[n+2] = t + 2;
-				tris[n+3] = t + 1;
-				tris[n+4] = t + 3;
-				tris[n+5] = t + 2;
-
-				colors[t+0] = clear;
-				colors[t+1] = clear;
-				colors[t+2] = clear;
-				colors[t+3] = clear;
-
-				t += 4;
-				n += 6;
-			}
-
-			Mesh m = new Mesh();
-
-			m.vertices = positions;
-			m.uv = uv0;
-			m.uv2 = uv2;
-			m.colors = colors;
-			m.triangles = tris;
-
-			return m;
-		}
+            return m;
+        }
 
         /// <summary>
         /// Builds a lookup table for each vertex index and it's average normal with other vertices sharing a position.
@@ -206,7 +217,7 @@ namespace UnityEngine.Polybrush
 			if(n == null || n.Length != mesh.vertexCount)
 				return normals;
 
-			List<List<int>> groups = GetCommonVertices(mesh);
+			int[][] groups = GetCommonVertices(mesh);
 
 			Vector3 avg = Vector3.zero;
 			Vector3 a = Vector3.zero;
@@ -237,7 +248,7 @@ namespace UnityEngine.Polybrush
 		/// <summary>
 		/// Store a temporary cache of common vertex indices.
 		/// </summary>
-		internal static Dictionary<PolyMesh, List<List<int>>> commonVerticesCache = new Dictionary<PolyMesh, List<List<int>>>();
+		internal static Dictionary<PolyMesh, int[][]> commonVerticesCache = new Dictionary<PolyMesh, int[][]>();
 
         /// <summary>
         /// Builds a list<group> with each vertex index and a list of all other vertices sharing a position.
@@ -246,7 +257,7 @@ namespace UnityEngine.Polybrush
         /// key: Index in vertices array
         /// value: List of other indices in positions array that share a point with this index.
         /// </returns>
-        internal static List<List<int>> GetCommonVertices(PolyMesh mesh)
+        internal static int[][] GetCommonVertices(PolyMesh mesh)
 		{
             //null checks
             if (mesh == null)
@@ -254,7 +265,7 @@ namespace UnityEngine.Polybrush
                 return null;
             }
 
-            List<List<int>> indices;
+            int[][] indices;
 
 			if( commonVerticesCache.TryGetValue(mesh, out indices) )
 			{
@@ -272,11 +283,13 @@ namespace UnityEngine.Polybrush
 
 				// if(max - min + 1 == mesh.vertexCount)
 					return indices;
-			}
+            }
 
 			Vector3[] v = mesh.vertices;
 			int[] t = Util.Fill<int>((x) => { return x; }, v.Length);
-			indices = t.ToLookup( x => (RndVec3)v[x] ).Select(y => y.ToList()).ToList();
+			indices = t.ToLookup(x => (RndVec3)v[x])
+                .Select(y => y.ToArray())
+                .ToArray();
 
 			if(!commonVerticesCache.ContainsKey(mesh))
 				commonVerticesCache.Add(mesh, indices);
@@ -355,27 +368,23 @@ namespace UnityEngine.Polybrush
         /// <param name="mesh"></param>
         /// <returns></returns>
         internal static HashSet<int> GetNonManifoldIndices(PolyMesh mesh)
-		{
-            //null checks
-            if(mesh == null)
-            {
+        {
+            if (mesh == null)
                 return null;
-            }
 
-			List<CommonEdge> duplicates;
-			HashSet<CommonEdge> edges = GetEdgesDistinct(mesh, out duplicates);
-			edges.ExceptWith(duplicates);
-			HashSet<int> hash = CommonEdge.ToHashSet( edges );
-
-			return hash;
-		}
+            List<CommonEdge> duplicates;
+            HashSet<CommonEdge> edges = GetEdgesDistinct(mesh, out duplicates);
+            edges.ExceptWith(duplicates);
+            HashSet<int> hash = CommonEdge.ToHashSet(edges);
+            return hash;
+        }
 
         /// <summary>
         /// Builds a lookup with each vertex index and a list of all neighboring indices.
         /// </summary>
         /// <param name="mesh"></param>
         /// <returns></returns>
-        internal static Dictionary<int, List<int>> GetAdjacentVertices(PolyMesh mesh)
+        internal static Dictionary<int, int[]> GetAdjacentVertices(PolyMesh mesh)
 		{
             //null checks
             if (mesh == null)
@@ -383,10 +392,10 @@ namespace UnityEngine.Polybrush
                 return null;
             }
 
-            List<List<int>> common = GetCommonVertices(mesh);
+            int[][] common = GetCommonVertices(mesh);
 			Dictionary<int, int> lookup = common.GetCommonLookup<int>();
 
-			List<CommonEdge> edges = GetEdges(mesh, lookup).ToList();
+            List<CommonEdge> edges = GetEdges(mesh, lookup);
 			List<List<int>> map = new List<List<int>>();
 
 			for(int i = 0; i < common.Count(); i++)
@@ -398,11 +407,11 @@ namespace UnityEngine.Polybrush
 				map[edges[i].cy].Add(edges[i].x);
 			}
 
-			Dictionary<int, List<int>> adjacent = new Dictionary<int, List<int>>();
+			Dictionary<int, int[]> adjacent = new Dictionary<int, int[]>();
 			IEnumerable<int> distinctTriangles = mesh.GetTriangles().Distinct();
 
 			foreach(int i in distinctTriangles)
-				adjacent.Add(i, map[lookup[i]]);
+				adjacent.Add(i, map[lookup[i]].ToArray());
 
 			return adjacent;
 		}
@@ -473,14 +482,14 @@ namespace UnityEngine.Polybrush
 			return lookup;
 		}
 
-		private static Dictionary<PolyMesh, List<List<int>>> commonNormalsCache = new Dictionary<PolyMesh, List<List<int>>>();
+		private static Dictionary<PolyMesh, int[][]> commonNormalsCache = new Dictionary<PolyMesh, int[][]>();
 
         /// <summary>
         /// Vertices that are common, form a seam, and should be smoothed.
         /// </summary>
         /// <param name="mesh"></param>
         /// <returns></returns>
-        internal static List<List<int>> GetSmoothSeamLookup(PolyMesh mesh)
+        internal static int[][] GetSmoothSeamLookup(PolyMesh mesh)
 		{
             //null checks
             if (mesh == null)
@@ -493,18 +502,18 @@ namespace UnityEngine.Polybrush
 			if(normals == null)
 				return null;
 
-			List<List<int>> lookup = null;
+			int[][] lookup = null;
 
 			if(commonNormalsCache.TryGetValue(mesh, out lookup))
 				return lookup;
 
-			List<List<int>> common = GetCommonVertices(mesh);
+			int[][] common = GetCommonVertices(mesh);
 
 			var z = common
 				.SelectMany(x => x.GroupBy( i => (RndVec3)normals[i] ))
 					.Where(n => n.Count() > 1)
-						.Select(t => t.ToList())
-							.ToList();
+						.Select(t => t.ToArray())
+							.ToArray();
 
 			commonNormalsCache.Add(mesh, z);
 
@@ -519,11 +528,9 @@ namespace UnityEngine.Polybrush
 		{
             //null checks
             if (mesh == null)
-            {
                 return;
-            }
 
-            List<List<int>> smooth = GetSmoothSeamLookup(mesh);
+            int[][] smooth = GetSmoothSeamLookup(mesh);
 
 			mesh.RecalculateNormals();
 
@@ -531,12 +538,13 @@ namespace UnityEngine.Polybrush
 			{
 				Vector3[] normals = mesh.normals;
 
-				foreach(List<int> l in smooth)
+				for (int i = 0; i < smooth.Length; ++i)
 				{
-					Vector3 n = PolyMath.Average(normals, l);
+                    int[] l = smooth[i];
+					Vector3 n = Math.Average(normals, l);
 
-					foreach(int i in l)
-						normals[i] = n;
+					for (int j = 0; j < l.Length; ++j)
+						normals[j] = n;
 				}
 
 				mesh.normals = normals;

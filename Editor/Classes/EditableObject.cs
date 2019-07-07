@@ -16,20 +16,20 @@ namespace UnityEditor.Polybrush
 	{
 		static HierarchyChanged()
 		{
-			EditorApplication.hierarchyChanged += () =>
-			{
-				foreach (var gameObject in Selection.gameObjects)
-				{
+            EditorApplication.hierarchyChanged += () =>
+            {
+                foreach (var gameObject in Selection.gameObjects)
+                {
                     var mesh = Util.GetMesh(gameObject);
                     var id = EditableObject.GetMeshId(mesh);
 
-					// if the mesh is an instance managed by polybrush check that it's not a duplicate.
-					if (id != -1)
-					{
-						if (id != gameObject.GetInstanceID() && EditorUtility.InstanceIDToObject(id) != null)
-						{
-							mesh = PolyMeshUtility.DeepCopy(mesh);
-							mesh.name = EditableObject.k_MeshInstancePrefix + gameObject.GetInstanceID();
+                    // if the mesh is an instance managed by polybrush check that it's not a duplicate.
+                    if (id != -1)
+                    {
+                        if (id != gameObject.GetInstanceID() && EditorUtility.InstanceIDToObject(id) != null)
+                        {
+                            mesh = PolyMeshUtility.DeepCopy(mesh);
+                            mesh.name = EditableObject.k_MeshInstancePrefix + gameObject.GetInstanceID();
 
                             var mf = gameObject.GetComponent<MeshFilter>();
                             var sf = gameObject.GetComponent<SkinnedMeshRenderer>();
@@ -44,11 +44,11 @@ namespace UnityEditor.Polybrush
                                 mf.sharedMesh = mesh;
                             else if (sf != null)
                                 sf.sharedMesh = mesh;
-						}
-					}
-				}
-			};
-		}
+                        }
+                    }
+                }
+            };
+        }
 	}
 
     /// <summary>
@@ -146,6 +146,7 @@ namespace UnityEditor.Polybrush
 		// The original mesh.  Can be the same as mesh.
 		internal Mesh originalMesh { get; private set; }
 
+        internal MeshChannel modifiedChannels = MeshChannel.Null;
 
         // Where this mesh originated.
         internal ModelSource source { get; private set; }
@@ -158,7 +159,7 @@ namespace UnityEditor.Polybrush
 
 		private T GetAttribute<T>(System.Func<Mesh, T> getter) where T : IList
 		{
-			if(usingVertexStreams) 
+			if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream) 
 			{
 				int vertexCount = originalMesh.vertexCount;
 				T arr = getter(this.graphicsMesh);
@@ -218,9 +219,6 @@ namespace UnityEditor.Polybrush
         internal bool isProBuilderObject { get; private set; }
 #endif   
 		
-		// Is the mesh using additional vertex streams?
-		internal bool usingVertexStreams { get; private set; }
-
 		// Container for polyMesh. @todo remove when Unity fixes
 		PolybrushMesh m_PolybrushMesh;
 
@@ -307,14 +305,11 @@ namespace UnityEditor.Polybrush
             MeshRenderer meshRenderer = gameObjectAttached.GetComponent<MeshRenderer>();
             meshFilter = gameObjectAttached.GetComponent<MeshFilter>();
             _skinMeshRenderer = gameObjectAttached.GetComponent<SkinnedMeshRenderer>();
-            usingVertexStreams = false;
 
             originalMesh = go.GetMesh();
 
             if (originalMesh == null && _skinMeshRenderer != null)
                 originalMesh = _skinMeshRenderer.sharedMesh;
-
-            bool configAdvs = s_UseAdditionalVertexStreams;
 
             m_PolybrushMesh = gameObjectAttached.GetComponent<PolybrushMesh>();
 
@@ -322,6 +317,7 @@ namespace UnityEditor.Polybrush
             {
                 m_PolybrushMesh = Undo.AddComponent<PolybrushMesh>(gameObjectAttached);
                 m_PolybrushMesh.Initialize();
+                m_PolybrushMesh.mode = (s_UseAdditionalVertexStreams) ? PolybrushMesh.Mode.AdditionalVertexStream : PolybrushMesh.Mode.Mesh;
             }
 
             //attach the skinmesh ref to the polybrushmesh
@@ -366,14 +362,13 @@ namespace UnityEditor.Polybrush
                 }
 
                 mesh.name = k_MeshInstancePrefix + gameObjectAttached.GetInstanceID();
-                usingVertexStreams = configAdvs;
             }
 
             polybrushMesh.SetMesh(mesh);
             PrefabUtility.RecordPrefabInstancePropertyModifications(polybrushMesh);
             _graphicsMesh = m_PolybrushMesh.storedMesh;
 
-            source = configAdvs ? ModelSource.AdditionalVertexStreams : PolyEditorUtility.GetMeshGUID(originalMesh);
+            source = polybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream? ModelSource.AdditionalVertexStreams : PolyEditorUtility.GetMeshGUID(originalMesh);
 
             GenerateCompositeMesh();
         }
@@ -406,19 +401,24 @@ namespace UnityEditor.Polybrush
         /// otpimziations etc) </param>
         internal void Apply(bool rebuildMesh, bool optimize = false)
         {
-            if (usingVertexStreams)
+            if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
             {
-                if (s_RebuildNormals.value)
-                    PolyMeshUtility.RecalculateNormals(editMesh);
+                if (PolyEditor.instance.tool == BrushTool.RaiseLower ||
+                    PolyEditor.instance.tool == BrushTool.Smooth)
+                {
+                    if (s_RebuildNormals.value && (modifiedChannels & MeshChannel.Position) > 0)
+                        PolyMeshUtility.RecalculateNormals(editMesh);
 
-                editMesh.ApplyAttributesToUnityMesh(graphicsMesh);
+                    if (optimize)
+                    {
+                        graphicsMesh.RecalculateBounds();
+                        UpdateMeshCollider();
+                    }
+                }
+
+                editMesh.ApplyAttributesToUnityMesh(graphicsMesh, modifiedChannels);
                 graphicsMesh.UploadMeshData(false);
                 EditorUtility.SetDirty(gameObjectAttached.GetComponent<Renderer>());
-
-                if(optimize)
-                {
-                    UpdateMeshCollider();
-                }
 
                 if (m_PolybrushMesh.componentsCache.MeshFilter)
                     Undo.RecordObject(m_PolybrushMesh.componentsCache.MeshFilter, "Assign Polymesh to MeshFilter");
@@ -454,25 +454,33 @@ namespace UnityEditor.Polybrush
             }
 #endif
 
-            if (usingVertexStreams)
-                return;
-
-            if (s_RebuildNormals.value)
-                PolyMeshUtility.RecalculateNormals(editMesh);
-
-            editMesh.ApplyAttributesToUnityMesh(graphicsMesh);
-
-            graphicsMesh.RecalculateBounds();
-
-            if(optimize)
+            if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
             {
-                UpdateMeshCollider();
+                modifiedChannels = MeshChannel.Null;
+                return;
             }
+
+            if (PolyEditor.instance.tool == BrushTool.RaiseLower ||
+                PolyEditor.instance.tool == BrushTool.Smooth)
+            {
+                if (s_RebuildNormals.value)// && (modifiedChannels & MeshChannel.Position) > 0)
+                    PolyMeshUtility.RecalculateNormals(editMesh);
+
+                if (optimize)
+                {
+                    UpdateMeshCollider();
+                    graphicsMesh.RecalculateBounds();
+                }
+            }
+
+            editMesh.ApplyAttributesToUnityMesh(graphicsMesh, modifiedChannels);
 
             if (m_PolybrushMesh.componentsCache.MeshFilter)
                 Undo.RecordObject(m_PolybrushMesh.componentsCache.MeshFilter, "Assign Polymesh to MeshFilter");
 
             m_PolybrushMesh.SynchronizeWithMeshRenderer();
+            
+            modifiedChannels = MeshChannel.Null;
         }
         /// <summary>
         /// Update the mesh collider
@@ -484,8 +492,9 @@ namespace UnityEditor.Polybrush
             {
                 MeshCollider mc = gameObjectAttached.GetComponent<MeshCollider>();
 
-                if (mc != null)
+                if (mc != null && mc.sharedMesh != graphicsMesh)
                 {
+                    Undo.RecordObject(mc, "Assign PolybrushMesh to MeshCollider");
                     mc.sharedMesh = null;
                     mc.sharedMesh = graphicsMesh;
                 }
@@ -500,7 +509,7 @@ namespace UnityEditor.Polybrush
 		{
 			editMesh.ApplyAttributesToUnityMesh(_graphicsMesh, channel);
 
-            if (usingVertexStreams)
+            if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
 				_graphicsMesh.UploadMeshData(false);
 		}
 
@@ -515,7 +524,7 @@ namespace UnityEditor.Polybrush
 #endif
             RemovePolybrushComponentsIfNecessary();
 
-            if (usingVertexStreams)
+            if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
 			{
 				if(!hadVertexStreams)
 				{
@@ -533,17 +542,12 @@ namespace UnityEditor.Polybrush
             if (isProBuilderObject)
                 return;
 #endif
-
-            if(	originalMesh == null ||
-				(source == ModelSource.Scene && !UnityPrimitiveMeshNames.Contains(originalMesh.name)))
-			{
+            if (originalMesh == null || (source == ModelSource.Scene && !UnityPrimitiveMeshNames.Contains(originalMesh.name)))
                 return;
-			}
 
             if (graphicsMesh != null)
-				GameObject.DestroyImmediate(graphicsMesh);
+                GameObject.DestroyImmediate(graphicsMesh);
 
-            polybrushMesh.SetMesh(originalMesh);
             PrefabUtility.RecordPrefabInstancePropertyModifications(polybrushMesh);
         }
 
@@ -619,7 +623,8 @@ namespace UnityEditor.Polybrush
             // If there is none, remove it from the GameObject.
             if (!m_PolybrushMesh.hasAppliedChanges || isProBuilderObject)
             {
-                GameObject.DestroyImmediate(m_PolybrushMesh);
+                polybrushMesh.SetMesh(originalMesh);
+                //GameObject.DestroyImmediate(m_PolybrushMesh);
             }
         }
 

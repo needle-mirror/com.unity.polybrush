@@ -72,8 +72,11 @@ namespace UnityEngine.Polybrush
 
 			for(int i = 0; i < channelCount; i++)
 			{
-				this.weights[i] = new Vector4[weightCount];
-				System.Array.Copy(other.weights[i], this.weights[i], weightCount);
+                if (other.weights[i] != null)
+                {
+				    this.weights[i] = new Vector4[weightCount];
+				    System.Array.Copy(other.weights[i], this.weights[i], weightCount);
+                }
 			}
 		}
 
@@ -156,8 +159,8 @@ namespace UnityEngine.Polybrush
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <param name="mask"></param>
-        /// <param name="alpha"></param>
-        internal void LerpWeights(SplatSet lhs, SplatSet rhs, int mask, float[] alpha)
+        /// <param name="strength"></param>
+        internal void LerpWeights(SplatSet lhs, SplatSet rhs, int mask, float[] strength)
 		{
 			Dictionary<int, uint> affected = new Dictionary<int, uint>();
 
@@ -182,10 +185,10 @@ namespace UnityEngine.Polybrush
 
 				for(int i = 0; i < weightCount; i++)
 				{
-					if((v.Value & 1) != 0) c[i].x = Mathf.Lerp(a[i].x, b[i].x, alpha[i]);
-					if((v.Value & 2) != 0) c[i].y = Mathf.Lerp(a[i].y, b[i].y, alpha[i]);
-					if((v.Value & 4) != 0) c[i].z = Mathf.Lerp(a[i].z, b[i].z, alpha[i]);
-					if((v.Value & 8) != 0) c[i].w = Mathf.Lerp(a[i].w, b[i].w, alpha[i]);
+					if((v.Value & 1) != 0) c[i].x = Mathf.Lerp(a[i].x, b[i].x, strength[i]);
+					if((v.Value & 2) != 0) c[i].y = Mathf.Lerp(a[i].y, b[i].y, strength[i]);
+					if((v.Value & 4) != 0) c[i].z = Mathf.Lerp(a[i].z, b[i].z, strength[i]);
+					if((v.Value & 8) != 0) c[i].w = Mathf.Lerp(a[i].w, b[i].w, strength[i]);
 				}
 			}
 		}
@@ -195,15 +198,38 @@ namespace UnityEngine.Polybrush
         /// </summary>
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
-        /// <param name="alpha"></param>
-		internal void LerpWeights(SplatSet lhs, SplatWeight rhs, float alpha)
+        /// <param name="strength"></param>
+		internal void LerpWeights(SplatSet lhs, SplatWeight rhs, float strength)
 		{
 			for(int i = 0; i < weightCount; i++)
 			{
 				foreach(var cm in channelMap)
-					this.weights[cm.Value][i] = Vector4.LerpUnclamped(lhs.weights[cm.Value][i], rhs[cm.Key], alpha);
+					this.weights[cm.Value][i] = Vector4.LerpUnclamped(lhs.weights[cm.Value][i], rhs[cm.Key], strength);
 			}
 		}
+
+        /// <summary>
+        /// Lerp weights between lhs and rhs for value at the given index.
+        /// </summary>
+        /// <param name="lhs"></param>
+        /// <param name="rhs"></param>
+        /// <param name="strength"></param>
+        /// <param name="index"></param>
+        internal void LerpWeightOnSingleChannel(SplatSet lhs, SplatWeight rhs, float strength, int index)
+        {
+            for (int i = 0; i < weightCount; i++)
+            {
+                foreach (var cm in channelMap)
+                {
+                    float lerpedValue = Mathf.LerpUnclamped(lhs.weights[cm.Value][i][index], rhs[cm.Key][index], strength);
+
+                    // replace the original value at index with the lerped value
+                    var newWeightVector = lhs.weights[cm.Value][i];
+                    newWeightVector[index] = lerpedValue;
+                    this.weights[cm.Value][i] = newWeightVector;
+                }
+            }
+        }
 
         /// <summary>
         /// Copy values to another SplatSet

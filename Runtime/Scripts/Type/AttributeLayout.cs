@@ -1,4 +1,5 @@
 using System;
+using UnityEditor;
 
 namespace UnityEngine.Polybrush
 {
@@ -11,6 +12,7 @@ namespace UnityEngine.Polybrush
 	    [SerializeField] internal string shaderPath;
         [SerializeField] internal AttributeLayout[] attributes;
 
+        [Obsolete("Field is deprecated.")]
 	    internal Shader shader;
 
         internal static AttributeLayoutContainer Create(Shader shader, AttributeLayout[] attributes)
@@ -38,6 +40,40 @@ namespace UnityEngine.Polybrush
 
 			return true;
 		}
+
+        internal bool HasAttributes(string textureProperty)
+        {
+            return GetAttributes(textureProperty) != null;
+        }
+
+        internal AttributeLayout GetAttributes(string textureProperty)
+        {
+            if (attributes == null)
+                return null;
+            
+            return Array.Find(attributes, attr => attr.propertyTarget == textureProperty);
+        }
+
+        internal void AddAttribute(AttributeLayout layout)
+        {
+            if (attributes == null)
+                attributes = new AttributeLayout[0];
+            
+            ArrayUtility.Add(ref attributes, layout);
+        }
+
+        internal void RemoveAttribute(string propertyName)
+        {
+            RemoveAttribute(GetAttributes(propertyName));
+        }
+        
+        internal void RemoveAttribute(AttributeLayout layout)
+        {
+            if (layout == null)
+                throw new ArgumentNullException("layout");
+            
+            ArrayUtility.Remove(ref attributes, layout);
+        }
 	}
 
     /// <summary>
@@ -94,6 +130,11 @@ namespace UnityEngine.Polybrush
 		// a preview texture in the splatweight editor.
 		[System.NonSerialized] internal Texture2D previewTexture = null;
 
+        internal AttributeLayout()
+        {
+            
+        }
+		
 		internal AttributeLayout(MeshChannel channel, ComponentIndex index) : this(channel, index, Vector2.up, DefaultMask)
 		{}
 

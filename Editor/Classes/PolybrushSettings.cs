@@ -4,7 +4,7 @@ namespace UnityEditor.Polybrush
 {
     static class PolybrushSettings
     {
-        internal const string k_DefaultSettingsPath = "ProjectSettings/PolybrushSettings.json";
+        internal const string k_PackageName = "com.unity.polybrush";
 
         static Settings s_Instance;
 
@@ -14,11 +14,7 @@ namespace UnityEditor.Polybrush
             {
                 if (s_Instance == null)
                 {
-                    s_Instance = new Settings(new ISettingsRepository[]
-                    {
-                        new ProjectSettingsRepository(k_DefaultSettingsPath),
-                        new UserSettingsRepository(),
-                    });
+                    s_Instance = new Settings(k_PackageName);
                 }
 
                 return s_Instance;

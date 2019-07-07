@@ -1,4 +1,6 @@
 ﻿
+using System;
+
 namespace UnityEngine.Polybrush
 {
     /// <summary>

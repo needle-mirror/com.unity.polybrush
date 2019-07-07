@@ -44,6 +44,17 @@ In Polybrush 1.0, a menu item is available in `Tools > Polybrush > Upgrade Z_Add
 
 When used, it will go through every scene currently loaded in the Editor and look for `Z_AdditionalVertexStreams` components (even on inactive gameobjects). When one is found, it will be replaced by its new equivalent `PolybrushMesh` component. The internal data is converted during the process so you don't loose anything. Expect your scenes and objects to be marked as dirty, so don't forget to Save after this process.
 
+### Texture Blend mode: update shaders configuration
+
+As of Polybrush 1.0, shader setup (connecting channels with textures) is done directly within the Texture Blending panel of Polybrush. The setup info is stored in the shader's meta file.
+
+We provide a simple way to convert the existing `.pbs.json` files to the new format:
+
+   1. Select your shaders in the Project View.
+   2. Go to `Tools > Polybrush > Update Shader Meta`.
+
+This update process above will move the data from the `.pbs.json` into the shader `.meta file.` and delete the old `.pbs.json` file.
+
 # Integrations
 ### ProBuilder 4
 

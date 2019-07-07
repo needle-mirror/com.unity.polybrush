@@ -6,12 +6,30 @@ namespace UnityEngine.Polybrush.EditorTests
     public class IconUtilityTest
     {
         static readonly string k_SculpIconPath = "Toolbar/Sculpt";
-       [Test]
-       public void GetIcon()
+        static readonly string k_InvalidPath = "Invalid";
+
+        [Test]
+        public void GetIcon_ArgumentEmptyString_NoExceptionThrown()
         {
-            //null checks
-            //Assert.DoesNotThrow(() => IconUtility.GetIcon(string.Empty));
-            //Assert.IsNotNull(IconUtility.GetIcon(k_SculpIconPath));
+            Assert.DoesNotThrow(() => IconUtility.GetIcon(string.Empty));
+        }
+
+        [Test]
+        public void GetIcon_ArgumentEmptyString_ReturnsNull()
+        {
+            Assert.IsNull(IconUtility.GetIcon(string.Empty));
+        }
+
+        [Test]
+        public void GetIcon_ArgumentInvalidPathToTexture_ReturnsNull()
+        {
+            Assert.IsNull(IconUtility.GetIcon(k_InvalidPath));
+        }
+
+        [Test]
+        public void GetIcon_ArgumentValidPathToTexture_ReturnsValidReference()
+        {
+            Assert.IsNotNull(IconUtility.GetIcon(k_SculpIconPath));
         }
     }
 }

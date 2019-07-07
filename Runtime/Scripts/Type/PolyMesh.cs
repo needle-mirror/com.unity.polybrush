@@ -155,48 +155,63 @@ namespace UnityEngine.Polybrush
         {
             m_Triangles = m_SubMeshes.SelectMany(x => x.indexes).ToArray();
         }
-        
-		/// <summary>
+
+        static Vector3[] s_PerTriangleNormalsBuffer = new Vector3[4096];
+        static int[] s_PerTriangleAvgBuffer = new int[4096];
+
+        /// <summary>
         /// Recalculates the normals of the Mesh from the triangles and vertices.
         /// </summary>
-		internal void RecalculateNormals()
-		{
-			Vector3[] perTriangleNormal = new Vector3[vertexCount];
-			int[] perTriangleAvg = new int[vertexCount];
-			int[] tris = GetTriangles();
+        internal void RecalculateNormals()
+        {
+            if (s_PerTriangleNormalsBuffer.Length < vertexCount)
+            {
+                Array.Resize<Vector3>(ref s_PerTriangleNormalsBuffer, vertexCount);
+                Array.Resize<int>(ref s_PerTriangleAvgBuffer, vertexCount);
+            }                
 
-			for(int i = 0; i < tris.Length; i += 3)
-			{
-				int a = tris[i], b = tris[i + 1], c = tris[i + 2];
+            for (int i = 0; i < vertexCount; ++i)
+            {
+                s_PerTriangleNormalsBuffer[i].x = 0;
+                s_PerTriangleNormalsBuffer[i].y = 0;
+                s_PerTriangleNormalsBuffer[i].z = 0;
+                s_PerTriangleAvgBuffer[i] = 0;
+            }
 
-				Vector3 cross = PolyMath.Normal(vertices[a], vertices[b], vertices[c]);
+            int[] tris = GetTriangles();
+            
+            for (int i = 0; i < tris.Length; i += 3)
+            {
+                int a = tris[i], b = tris[i + 1], c = tris[i + 2];
 
-				perTriangleNormal[a].x += cross.x;
-				perTriangleNormal[b].x += cross.x;
-				perTriangleNormal[c].x += cross.x;
+                Vector3 cross = Math.Normal(vertices[a], vertices[b], vertices[c]);
 
-				perTriangleNormal[a].y += cross.y;
-				perTriangleNormal[b].y += cross.y;
-				perTriangleNormal[c].y += cross.y;
+                s_PerTriangleNormalsBuffer[a].x += cross.x;
+                s_PerTriangleNormalsBuffer[b].x += cross.x;
+                s_PerTriangleNormalsBuffer[c].x += cross.x;
 
-				perTriangleNormal[a].z += cross.z;
-				perTriangleNormal[b].z += cross.z;
-				perTriangleNormal[c].z += cross.z;
+                s_PerTriangleNormalsBuffer[a].y += cross.y;
+                s_PerTriangleNormalsBuffer[b].y += cross.y;
+                s_PerTriangleNormalsBuffer[c].y += cross.y;
 
-				perTriangleAvg[a]++;
-				perTriangleAvg[b]++;
-				perTriangleAvg[c]++;
-			}
+                s_PerTriangleNormalsBuffer[a].z += cross.z;
+                s_PerTriangleNormalsBuffer[b].z += cross.z;
+                s_PerTriangleNormalsBuffer[c].z += cross.z;
 
+                s_PerTriangleAvgBuffer[a]++;
+                s_PerTriangleAvgBuffer[b]++;
+                s_PerTriangleAvgBuffer[c]++;
+            }
 
-			for(int i = 0; i < vertexCount; i++)
-			{
-				normals[i].x = perTriangleNormal[i].x * (float) perTriangleAvg[i];
-				normals[i].y = perTriangleNormal[i].y * (float) perTriangleAvg[i];
-				normals[i].z = perTriangleNormal[i].z * (float) perTriangleAvg[i];
-                normals[i].Normalize();
-			}
-		}
+            for (int i = 0; i < vertexCount; i++)
+            {
+                normals[i].x = s_PerTriangleNormalsBuffer[i].x * (float)s_PerTriangleAvgBuffer[i];
+                normals[i].y = s_PerTriangleNormalsBuffer[i].y * (float)s_PerTriangleAvgBuffer[i];
+                normals[i].z = s_PerTriangleNormalsBuffer[i].z * (float)s_PerTriangleAvgBuffer[i];
+                Math.Divide(normals[i], normals[i].magnitude, ref normals[i]);
+            }
+        }
+
 
         /// <summary>
         /// Apply the vertex attributes to a UnityEngine mesh (does not set triangles)

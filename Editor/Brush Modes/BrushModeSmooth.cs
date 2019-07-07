@@ -9,8 +9,8 @@ namespace UnityEditor.Polybrush
     /// Brush mode for moving vertices in a direction.
     /// </summary>
     internal class BrushModeSmooth : BrushModeSculpt
-	{
-		const float SMOOTH_STRENGTH_MODIFIER = .1f;
+    {
+        const float SMOOTH_STRENGTH_MODIFIER = .1f;
 
         [UserSetting]
         internal static Pref<PolyDirection> s_SmoothDirection = new Pref<PolyDirection>("Brush.Direction", PolyDirection.VertexNormal, SettingsScope.Project);
@@ -24,18 +24,18 @@ namespace UnityEditor.Polybrush
         [UserSetting]
         internal static Pref<bool> s_UseFirstNormalVector = new Pref<bool>("SmoothBrush.UseFirstNormalVector", false, SettingsScope.Project);
 
-		Vector3[] vertices = null;
-		Dictionary<int, List<int>> neighborLookup = new Dictionary<int, List<int>>();
-		List<List<int>> commonVertices = null;
-		int commonVertexCount;
+        Vector3[] vertices = null;
+        Dictionary<int, int[]> neighborLookup = new Dictionary<int, int[]>();
+        int[][] commonVertices = null;
+        int commonVertexCount;
 
-		internal override string UndoMessage { get { return "Smooth Vertices"; } }
-		protected override string ModeSettingsHeader { get { return "Smooth Settings"; } }
-		protected override string DocsLink { get { return PrefUtility.documentationSmoothBrushLink; } }
+        internal override string UndoMessage { get { return "Smooth Vertices"; } }
+        protected override string ModeSettingsHeader { get { return "Smooth Settings"; } }
+        protected override string DocsLink { get { return PrefUtility.documentationSmoothBrushLink; } }
 
         internal override void DrawGUI(BrushSettings settings)
-		{
-			base.DrawGUI(settings);
+        {
+            base.DrawGUI(settings);
 
             EditorGUI.BeginChangeCheck();
 
@@ -49,87 +49,153 @@ namespace UnityEditor.Polybrush
                 PolybrushSettings.Save();
         }
 
-		internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
-		{
-			base.OnBrushEnter(target, settings);
+        internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
+        {
+            base.OnBrushEnter(target, settings);
 
             if (!likelyToSupportVertexSculpt)
                 return;
 
             vertices = target.editMesh.vertices;
-			neighborLookup = PolyMeshUtility.GetAdjacentVertices(target.editMesh);
-			commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
-			commonVertexCount = commonVertices.Count;
-		}
+            neighborLookup = PolyMeshUtility.GetAdjacentVertices(target.editMesh);
+            commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
+            commonVertexCount = commonVertices.Length;
+        }
 
-		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
-		{
+        internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
+        {
             if (!likelyToSupportVertexSculpt)
                 return;
 
             int rayCount = target.raycastHits.Count;
+            
 
-			Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? target.editableObject.editMesh.normals : null;
+            Vector3 v, t, avg, dirVec = s_SmoothDirection.value.ToVector3();
+            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            PolyMesh mesh = target.editableObject.editMesh;
+            Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? mesh.normals : null;
+            int vertexCount = mesh.vertexCount;
 
-			Vector3 v, t, avg, dirVec = s_SmoothDirection.value.ToVector3();
-			Plane plane = new Plane(Vector3.up, Vector3.zero);
-			PolyMesh mesh = target.editableObject.editMesh;
-			int vertexCount = mesh.vertexCount;
+            // don't use target.GetAllWeights because brush normal needs
+            // to know which ray to use for normal
+            for(int ri = 0; ri < rayCount; ri++)
+            {
+                PolyRaycastHit hit = target.raycastHits[ri];
 
-			// don't use target.GetAllWeights because brush normal needs
-			// to know which ray to use for normal
-			for(int ri = 0; ri < rayCount; ri++)
-			{
-				PolyRaycastHit hit = target.raycastHits[ri];
-
-				if(hit.weights == null || hit.weights.Length < vertexCount)
-					continue;
+                if(hit.weights == null || hit.weights.Length < vertexCount)
+                    continue;
 
                 for (int i = 0; i < commonVertexCount; i++)
                 {
-					int index = commonVertices[i][0];
+                    int index = commonVertices[i][0];
 
                     if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
                         continue;
 
-					v = vertices[index];
+                    v = vertices[index];
 
                     if (s_SmoothDirection == PolyDirection.VertexNormal)
                     {
-						avg = PolyMath.Average(vertices, neighborLookup[index]);
-					}
-					else
-					{
-						avg = PolyMath.WeightedAverage(vertices, neighborLookup[index], hit.weights);
+                        avg = Math.Average(vertices, neighborLookup[index]);
+                    }
+                    else
+                    {
+                        avg = Math.WeightedAverage(vertices, neighborLookup[index], hit.weights);
 
                         if (s_SmoothDirection == PolyDirection.BrushNormal)
                         {
                             if (s_UseFirstNormalVector)
                                 dirVec = brushNormalOnBeginApply[ri];
-							else
-								dirVec = PolyMath.WeightedAverage(normals, neighborLookup[index], hit.weights).normalized;
-						}
+                            else
+                                dirVec = Math.WeightedAverage(normals, neighborLookup[index], hit.weights).normalized;
+                        }
 
-						plane.SetNormalAndPosition(dirVec, avg);
-						avg = v - dirVec * plane.GetDistanceToPoint(v);
-					}
+                        plane.SetNormalAndPosition(dirVec, avg);
+                        avg = v - dirVec * plane.GetDistanceToPoint(v);
+                    }
 
-					t = Vector3.Lerp(v, avg, hit.weights[index]);
-					List<int> indices = commonVertices[i];
+                    t = Vector3.Lerp(v, avg, hit.weights[index]);
+                    int[] indices = commonVertices[i];
 
-					Vector3 pos = v + (t-v) * settings.strength * SMOOTH_STRENGTH_MODIFIER;
+                    Vector3 pos = v + (t-v) * settings.strength * SMOOTH_STRENGTH_MODIFIER;
 
-					for(int n = 0; n < indices.Count; n++)
-						vertices[indices[n]] = pos;
-				}
-			}
+                    for(int n = 0; n < indices.Length; n++)
+                        vertices[indices[n]] = pos;
+                }
+            }
 
-			mesh.vertices = vertices;
+            mesh.vertices = vertices;
 
-			if(tempComponent != null)
-				tempComponent.OnVerticesMoved(mesh);
+            if(tempComponent != null)
+                tempComponent.OnVerticesMoved(mesh);
 
-			base.OnBrushApply(target, settings);
-		}
-	}
+            base.OnBrushApply(target, settings);
+        }
+
+        /// <summary>
+        /// Draw gizmos taking into account handling of normal by smooth brush mode.
+        /// </summary>
+        /// <param name="target">Current target Object</param>
+        ///// <param name="settings">Current brush settings</param>
+        internal override void DrawGizmos(BrushTarget target, BrushSettings settings)
+        {
+            UpdateBrushGizmosColor();            
+            Vector3 normal = s_SmoothDirection.value.ToVector3();
+
+            int rayCount = target.raycastHits.Count;
+            PolyMesh mesh = target.editableObject.editMesh;
+            int vertexCount = mesh.vertexCount;
+            Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? mesh.normals : null;
+
+            // don't use target.GetAllWeights because brush normal needs
+            // to know which ray to use for normal
+            for (int ri = 0; ri < rayCount; ri++)
+            {
+                PolyRaycastHit hit = target.raycastHits[ri];
+
+                if (hit.weights == null || hit.weights.Length < vertexCount)
+                    continue;
+                
+                if (s_SmoothDirection == PolyDirection.BrushNormal)
+                {
+                    if (s_UseFirstNormalVector && brushNormalOnBeginApply.Count > ri)
+                    {
+                        normal = brushNormalOnBeginApply[ri];
+                    }
+                    else
+                    {
+                        // get the highest weighted vertex to use its direction computation
+                        float highestWeight = .0001f;
+                        int highestIndex = -1;
+                        for (int i = 0; i < commonVertexCount; i++)
+                        {
+                            int index = commonVertices[i][0];
+                            if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+                                continue;
+
+                            if (hit.weights[index] > highestWeight)
+                            {
+                                highestIndex = index;
+                            }
+                        }
+
+                        if (highestIndex != -1)
+                        {
+                            normal = Math.WeightedAverage(normals, neighborLookup[highestIndex], hit.weights).normalized;
+                        }
+                        else
+                        {
+                            normal = hit.normal;
+                        }
+                    }
+                }
+                else if (s_SmoothDirection == PolyDirection.VertexNormal)
+                {
+                    normal = hit.normal;
+                }
+
+                PolyHandles.DrawBrush(hit.position, normal, settings, target.localToWorldMatrix, innerColor, outerColor);
+            }
+        }
+    }
 }

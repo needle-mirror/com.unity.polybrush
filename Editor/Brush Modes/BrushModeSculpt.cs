@@ -126,9 +126,12 @@ namespace UnityEditor.Polybrush
 			PolyMesh mesh = target.editableObject.editMesh;
 
 			cached_normals = new Vector3[mesh.vertexCount];
-			
-			if(mesh.normals != null && mesh.normals.Length == mesh.vertexCount)
-				System.Array.Copy(mesh.normals, 0, cached_normals, 0, mesh.vertexCount);
+
+            if (mesh.normals != null && mesh.normals.Length == mesh.vertexCount)
+            {
+                System.Array.Copy(mesh.normals, 0, cached_normals, 0, mesh.vertexCount);
+                target.editableObject.modifiedChannels |= MeshChannel.Normal;
+            }
 		}
 
 		internal override void OnBrushBeginApply(BrushTarget target, BrushSettings settings)
@@ -137,7 +140,13 @@ namespace UnityEditor.Polybrush
 			base.OnBrushBeginApply(target, settings);
 		}
 
-		protected override void CreateTempComponent(EditableObject target)
+        internal override void OnBrushFinishApply(BrushTarget target, BrushSettings settings)
+        {
+            brushNormalOnBeginApply.Clear();
+            base.OnBrushFinishApply(target, settings);
+        }
+
+        protected override void CreateTempComponent(EditableObject target)
 		{
             RefreshVertexSculptSupport(target);
             if (!likelyToSupportVertexSculpt)

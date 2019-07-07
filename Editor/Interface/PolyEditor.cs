@@ -24,7 +24,7 @@ namespace UnityEditor.Polybrush
 		const double k_EditorTargetFrameLow = .016667;
 		const double k_EditorTargetFramerateHigh = .03;
 
-        static readonly Vector2 k_EditorWindowMinimumSize = new Vector2(300, 180);
+        static readonly Vector2 k_EditorWindowMinimumSize = new Vector2(320, 180);
 
         static List<Ray> s_Rays = new List<Ray>();
 
@@ -265,11 +265,6 @@ namespace UnityEditor.Polybrush
 				PolyEditor.instance.m_WantsRepaint = true;
 		}
 
-        private void Update()
-        {
-            PolybrushMesh.s_UseADVS = EditableObject.s_UseAdditionalVertexStreams;
-        }
-
         void OnGUI()
 		{
 			Event e = Event.current;
@@ -418,8 +413,8 @@ namespace UnityEditor.Polybrush
 		{
 			GenericMenu menu = new GenericMenu();
 
-			menu.AddItem (new GUIContent("Open as Floating Window", ""), !s_FloatingWindow, () => { SetWindowFloating(true); } );
-			menu.AddItem (new GUIContent("Open as Dockable Window", ""), s_FloatingWindow, () => { SetWindowFloating(false); } );
+			menu.AddItem (new GUIContent("Open as Floating Window", ""), s_FloatingWindow, () => { SetWindowFloating(true); } );
+			menu.AddItem (new GUIContent("Open as Dockable Window", ""), !s_FloatingWindow, () => { SetWindowFloating(false); } );
 
 			menu.ShowAsContext ();
 		}
@@ -627,11 +622,30 @@ namespace UnityEditor.Polybrush
 				case EventType.ScrollWheel:
 					ScrollBrushSettings(e);
 					break;
-			}
+                case EventType.KeyDown:
+                    // Key down event continues as long as the key is held down. However, we only need to update the brush once while the key is down.
+                    // Check if the key has already been marked as pressed in the brush settings, and don't update if it is.
+                    if (((e.keyCode == KeyCode.LeftControl || e.keyCode == KeyCode.RightControl) && !brushSettings.isUserHoldingControl) ||
+                        ((e.keyCode == KeyCode.LeftShift || e.keyCode == KeyCode.RightShift) && !brushSettings.isUserHoldingShift))
+                    {
+                        m_LastBrushUpdate = EditorApplication.timeSinceStartup;
+                        UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
+                    }
+                    break;
+                case EventType.KeyUp:
+                    // Key up only happens once, so don't need to check if we were already holding control/shift
+                    if ((e.keyCode == KeyCode.LeftControl || e.keyCode == KeyCode.RightControl) ||
+                        (e.keyCode == KeyCode.LeftShift || e.keyCode == KeyCode.RightShift))
+                    {
+                        m_LastBrushUpdate = EditorApplication.timeSinceStartup;
+                        UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
+                    }
+                    break;
+            }
 
 			if( Util.IsValid(brushTarget) )
 				mode.DrawGizmos(brushTarget, brushSettings);
-		}
+        }
 
         /// <summary>
         /// Get framerate according to the brush target
@@ -813,11 +827,11 @@ namespace UnityEditor.Polybrush
             if (brushTarget == null)
 				return;
 
-			if(mouseHoverTargetChanged)
-			{
-                brushSettings.isUserHoldingControl = isUserHoldingControl;
-                brushSettings.isUserHoldingShift = isUserHoldingShift;
+            brushSettings.isUserHoldingControl = isUserHoldingControl;
+            brushSettings.isUserHoldingShift = isUserHoldingShift;
 
+            if (mouseHoverTargetChanged)
+			{
                 OnBrushEnter(brushTarget, brushSettings);
 
 				// brush is in use, adding a new object to the undo

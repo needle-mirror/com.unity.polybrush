@@ -46,5 +46,25 @@ namespace UnityEditor.Polybrush
             }
         }
 #pragma warning restore 612
+
+
+        [MenuItem("Tools/" + PrefUtility.productName + "/Update Shader Meta", false)]
+        static void UpdateShaderMetaToNewFormat()
+        {
+            foreach (Shader s in Selection.objects)
+                ShaderMetaDataUtility.ConvertMetaDataToNewFormat(s);
+        }
+#pragma warning restore 612
+
+        [MenuItem("Tools/" + PrefUtility.productName + "/Update Shader Meta", true)]
+        static bool ValidateUpdateShaderMetaToNewFormat()
+        {
+            foreach (Object s in Selection.objects)
+            {
+                if (!(s is Shader))
+                    return false;
+            }
+            return true;
+        }
     }
 }

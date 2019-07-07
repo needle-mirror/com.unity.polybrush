@@ -103,13 +103,18 @@ namespace UnityEngine.Polybrush
 
 		internal float GetAttributeValue(AttributeLayout attrib)
 		{
-			return values[map[attrib.channel] * 4 + (int) attrib.index];
+			return values[GetAttributeIndex(attrib)];
 		}
 
 		internal void SetAttributeValue(AttributeLayout attrib, float value)
 		{
-			values[map[attrib.channel] * 4 + (int) attrib.index] = value;
+			values[GetAttributeIndex(attrib)] = value;
 		}
+
+        internal int GetAttributeIndex(AttributeLayout attrib)
+        {
+            return map[attrib.channel] * 4 + (int)attrib.index;
+        }
 
         /// <summary>
         /// Copy values array to another splatweight.  This function doesn't check

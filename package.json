@@ -1,7 +1,7 @@
 {
   "name": "com.unity.polybrush",
   "displayName": "Polybrush",
-  "version": "1.0.0-preview.17",
+  "version": "1.0.0",
   "unity": "2018.3",
   "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.\n\nIMPORTANT: Polybrush is still in \"Preview\", and may cause instability or even data loss in your project. Please read the Known Issues section of the changelog before using.",
   "keywords": [
@@ -13,28 +13,28 @@
   ],
   "samples": [
     {
-      "displayName": "Samples (Standard Rendering Pipeline)",
-      "description": "Polybrush samples compatible with Unity Standard rendering pipeline.",
+      "displayName": "Shader Examples (Standard)",
+      "description": "Polybrush shader examples compatible with Unity Standard rendering pipeline.",
       "path": "Samples~/SamplesStandard"
     },
     {
-      "displayName": "Samples (Lightweight Rendering Pipeline)",
-      "description": "Polybrush samples compatible with Unity Lightweight rendering pipeline.",
+      "displayName": "Shader Examples (LWRP)",
+      "description": "Polybrush shader examples compatible with Unity Lightweight rendering pipeline.",
       "path": "Samples~/SamplesLWRP"
     },
     {
-      "displayName": "Samples (High Definition Rendering Pipeline)",
-      "description": "Polybrush samples compatible with Unity High Definition rendering pipeline.",
+      "displayName": "Shader Examples (HDRP)",
+      "description": "Polybrush shader examples compatible with Unity High Definition rendering pipeline.",
       "path": "Samples~/SamplesHDRP"
     }
   ],
   "dependencies": {
-    "com.unity.settings-manager": "0.1.0-preview.4"
+    "com.unity.settings-manager": "1.0.0"
   },
   "relatedPackages": {},
   "repository": {
     "type": "git",
-    "url": "https://gitlab.cds.internal.unity3d.com/upm-packages/world-building/com.unity.polybrush.git",
-    "revision": "73a8b76061ca61a90feb29fa05cd8a9fda873dfc"
+    "url": "git@github.com:Unity-Technologies/polybrush.git",
+    "revision": "351c912fea1caed3e41bbf901b48e25fc11d4990"
   }
 }

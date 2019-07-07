@@ -1,5 +1,5 @@
 {
-    "displayName":"Samples (High Definition Rendering Pipeline)",
-    "description": "Polybrush samples compatible with Unity High Definition rendering pipeline.",
+    "displayName":"Shader Examples (HDRP)",
+    "description": "Polybrush shader examples compatible with Unity High Definition rendering pipeline.",
     "createSeparatePackage": false
 }

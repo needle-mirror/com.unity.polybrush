@@ -223,8 +223,10 @@ namespace UnityEditor.Polybrush
 		internal void SetColorPalette(ColorPalette palette)
 		{
 			colorPalette = palette;
-			RefreshAvailablePalettes();
-		}
+            m_BrushColor = colorPalette.current;
+
+            RefreshAvailablePalettes();
+        }
 
 		internal override void OnBrushSettingsChanged(BrushTarget target, BrushSettings settings)
 		{
@@ -354,7 +356,9 @@ namespace UnityEditor.Polybrush
 		{
 			System.Array.Copy(m_MeshVertexColors.Colors, m_MeshVertexColors.OriginalColors, m_MeshVertexColors.Colors.Length);
 			target.editableObject.editMesh.colors = m_MeshVertexColors.OriginalColors;
-			base.OnBrushApply(target, settings);
+            target.editableObject.modifiedChannels |= MeshChannel.Color;
+
+            base.OnBrushApply(target, settings);
 		}
 
         /// <summary>

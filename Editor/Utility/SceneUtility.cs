@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
+using System;
+using Math = UnityEngine.Polybrush.Math;
+
 
 namespace UnityEditor.Polybrush
 {
@@ -61,15 +64,19 @@ namespace UnityEditor.Polybrush
         /// <returns></returns>
         internal static bool MeshRaycast(Ray InRay, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity, Culling cullingMode = Culling.Front)
 		{
-			float hitDistance = Mathf.Infinity;
             Vector3 hitNormal = Vector3.zero;	// vars used in loop
 			Vector3 vert0, vert1, vert2;
-			int hitFace = -1;
 			Vector3 origin = InRay.origin, direction = InRay.direction;
-			/**
+
+            hit = new PolyRaycastHit(Mathf.Infinity,
+                                    Vector3.zero,
+                                    Vector3.zero,
+                                    -1);
+
+            /**
 			 * Iterate faces, testing for nearest hit to ray origin.
 			 */
-			for(int CurTri = 0; CurTri < triangles.Length; CurTri += 3)
+            for (int CurTri = 0; CurTri < triangles.Length; CurTri += 3)
 			{
                 if (CurTri + 2 >= triangles.Length) continue;
                 if (triangles[CurTri + 2] >= vertices.Length) continue;
@@ -78,20 +85,26 @@ namespace UnityEditor.Polybrush
 				vert1 = vertices[triangles[CurTri+1]];
 				vert2 = vertices[triangles[CurTri+2]];
 
-				if(PolyMath.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal))
+                // Second pass, test intersection with triangle
+                if (Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal))
 				{
-					hitFace = CurTri / 3;
-					hitDistance = distance;
-					break;
-				}
+                    if (distance < hit.distance)
+                    {
+                        hit.distance = distance;
+                        hit.triangle = CurTri / 3;
+                        hit.position = InRay.GetPoint(hit.distance);
+                        hit.normal = hitNormal;
+                    }
+
+                }
 			}
 
-			hit = new PolyRaycastHit( hitDistance,
-									InRay.GetPoint(hitDistance),
+			hit = new PolyRaycastHit( hit.distance,
+									InRay.GetPoint(hit.distance),
 									hitNormal,
-									hitFace);
+									hit.triangle);
 
-			return hitFace > -1;
+			return hit.triangle > -1;
 		}
 
         /// <summary>
@@ -109,6 +122,8 @@ namespace UnityEditor.Polybrush
 					|| Tools.viewTool == ViewTool.Orbit;
 		}
 
+        static Vector3[] s_WorldBuffer = new Vector3[4096];
+
         /// <summary>
         /// Calculates the per-vertex weight for each raycast hit and fills in brush target weights.
         /// </summary>
@@ -118,46 +133,43 @@ namespace UnityEditor.Polybrush
         /// <param name="bMode"></param>
         internal static void CalculateWeightedVertices(BrushTarget target, BrushSettings settings, BrushTool tool = BrushTool.None, BrushMode bMode = null)
 		{
-            //null checks
             if(target == null || settings == null)
-            {
                 return;
-            }
 
 			if(target.editableObject == null)
-            {
                 return;
-            }
 
-            bool uniformScale = PolyMath.VectorIsUniform(target.transform.lossyScale);
+            bool uniformScale = Math.VectorIsUniform(target.transform.lossyScale);
 			float scale = uniformScale ? 1f / target.transform.lossyScale.x : 1f;
 
 			PolyMesh mesh = target.editableObject.visualMesh;
+
+            Transform transform = target.transform;
+            int vertexCount = mesh.vertexCount;
+            Vector3[] vertices = mesh.vertices;
+
+            if (!uniformScale)
+            {
+                // As we only increase size only when it's needed, always make sure to
+                // use the vertexCount variable in loop statements and not the buffer length.
+                if (s_WorldBuffer.Length < vertexCount)
+                    System.Array.Resize<Vector3>(ref s_WorldBuffer, vertexCount);
+
+                for (int i = 0; i < vertexCount; i++)
+                    s_WorldBuffer[i] = transform.TransformPoint(vertices[i]);
+                vertices = s_WorldBuffer;
+            }
+
+            AnimationCurve curve = settings.falloffCurve;
+            float radius = settings.radius * scale, falloff_mag = Mathf.Max((radius - radius * settings.falloff), 0.00001f);
+
+            Vector3 hitPosition = Vector3.zero;
+            PolyRaycastHit hit;
 
             if (tool == BrushTool.Texture && mesh.subMeshCount > 1)
             {
                 var mode = bMode as BrushModeTexture;
                 int[] submeshIndices = mesh.subMeshes[mode.currentMeshACIndex].indexes;
-
-                //List<List<int>> common = PolyMeshUtility.GetCommonVertices(mesh);
-
-                Transform transform = target.transform;
-                int vertexCount = mesh.vertexCount;
-                Vector3[] vertices = mesh.vertices;
-
-                if (!uniformScale)
-                {
-                    Vector3[] world = new Vector3[vertexCount];
-                    for (int i = 0; i < vertexCount; i++)
-                        world[i] = transform.TransformPoint(vertices[i]);
-                    vertices = world;
-                }
-
-                AnimationCurve curve = settings.falloffCurve;
-                float radius = settings.radius * scale, falloff_mag = Mathf.Max((radius - radius * settings.falloff), 0.00001f);
-
-                Vector3 hitPosition = Vector3.zero;
-                PolyRaycastHit hit;
 
                 for (int n = 0; n < target.raycastHits.Count; n++)
                 {
@@ -188,25 +200,9 @@ namespace UnityEditor.Polybrush
             }
             else
             {
-                List<List<int>> common = PolyMeshUtility.GetCommonVertices(mesh);
+                int[][] common = PolyMeshUtility.GetCommonVertices(mesh);
 
-                Transform transform = target.transform;
-                int vertexCount = mesh.vertexCount;
-                Vector3[] vertices = mesh.vertices;
-
-                if (!uniformScale)
-                {
-                    Vector3[] world = new Vector3[vertexCount];
-                    for (int i = 0; i < vertexCount; i++)
-                        world[i] = transform.TransformPoint(vertices[i]);
-                    vertices = world;
-                }
-
-                AnimationCurve curve = settings.falloffCurve;
-                float radius = settings.radius * scale, falloff_mag = Mathf.Max((radius - radius * settings.falloff), 0.00001f);
-
-                Vector3 hitPosition = Vector3.zero;
-                PolyRaycastHit hit;
+                Vector3 buf = Vector3.zero;
 
                 for (int n = 0; n < target.raycastHits.Count; n++)
                 {
@@ -215,15 +211,19 @@ namespace UnityEditor.Polybrush
 
                     hitPosition = uniformScale ? hit.position : transform.TransformPoint(hit.position);
 
-                    for (int i = 0; i < common.Count; i++)
+                    for (int i = 0; i < common.Length; i++)
                     {
-                        int commonArrayCount = common[i].Count;
-                        float sqrDist = (hitPosition - vertices[common[i][0]]).sqrMagnitude;
+                        int[] commonItem = common[i];
+                        int commonArrayCount = commonItem.Length;
+
+                        Math.Subtract(vertices[commonItem[0]], hitPosition, ref buf);
+
+                        float sqrDist = buf.sqrMagnitude;
 
                         if (sqrDist > radius * radius)
                         {
                             for (int j = 0; j < commonArrayCount; j++)
-                                hit.weights[common[i][j]] = 0f;
+                                hit.weights[commonItem[j]] = 0f;
                         }
                         else
                         {
@@ -231,12 +231,13 @@ namespace UnityEditor.Polybrush
 
                             for (int j = 0; j < commonArrayCount; j++)
                             {
-                                hit.weights[common[i][j]] = weight;
+                                hit.weights[commonItem[j]] = weight;
                             }
                         }
                     }
                 }
             }
+
 			target.GetAllWeights(true);
 		}
 
@@ -250,7 +251,7 @@ namespace UnityEditor.Polybrush
 
 			IEnumerable<string> matches = match.Where(x => x != null).Select(y => instanceNamingFunc(y));
 
-			return Object.FindObjectsOfType<GameObject>().Where(x => {
+			return UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => {
 				return matches.Contains( x.name );
 				});
 		}

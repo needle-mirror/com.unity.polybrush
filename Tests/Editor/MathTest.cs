@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System.Collections.Generic;
 using System.Collections;
+using System;
 
 namespace UnityEngine.Polybrush.EditorTests
 {
@@ -22,7 +23,7 @@ namespace UnityEngine.Polybrush.EditorTests
             float distance = 0f;
 
             //should intersects
-            bool intersects = PolyMath.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
+            bool intersects = Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
 
             Assert.IsTrue(intersects);
             Assert.IsTrue(distance == 0.5f);
@@ -31,13 +32,13 @@ namespace UnityEngine.Polybrush.EditorTests
 
             //should not intersects
             direction = Vector3.up;
-            intersects = PolyMath.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
+            intersects = Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
             Assert.IsFalse(intersects);
 
             //should not intersects
             origin = new Vector3(5f, 0.5f, 0f);
             direction = Vector3.down;
-            intersects = PolyMath.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
+            intersects = Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal);
             Assert.IsFalse(intersects);
         }
 
@@ -64,7 +65,7 @@ namespace UnityEngine.Polybrush.EditorTests
         [Test, TestCaseSource(typeof(NormalWithThreePointsTestData), "Data")]
         public Vector3 TestMathNormalWithThreePoints(Vector3 v0, Vector3 v1, Vector3 v2)
         {
-            return PolyMath.Normal(v0, v1, v2);
+            return Math.Normal(v0, v1, v2);
         }
         
         class NormalWithPointsCollectionTestData
@@ -93,24 +94,54 @@ namespace UnityEngine.Polybrush.EditorTests
         [Test, TestCaseSource(typeof(NormalWithPointsCollectionTestData), "Data")]
         public Vector3 CalculateNormalWithPointsCollection(Vector3[] points)
         {
-            return PolyMath.Normal(points);
+            return Math.Normal(points);
+        }
+
+        [Test]
+        public void Average_ArgumentVector2Null_ThrowsException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                Math.Average((IList<Vector2>)null, null);
+            });
+        }
+
+        [Test]
+        public void Average_ArgumentVector3Null_ThrowsException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                Math.Average((IList<Vector3>)null, null);
+            });
+        }
+
+        [Test]
+        public void Average_ArgumentVector4Null_ThrowsException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                Math.Average((IList<Vector4>)null, null);
+            });
+        }
+
+        [Test]
+        public void Average_ColorArgumentNull_ThrowsException()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                Math.Average((IList<Color>)null, null);
+            });
         }
 
         [Test]
         public void Average()
         {
-            //null checks
-            Assert.DoesNotThrow(() =>
-            {
-                PolyMath.Average(null, null);
-            });
-
             Vector3[] vertices = GetVerticesSample();
 
             //create a list of indexes that will be used 
             List<int> indexes = new List<int>() { 1, 2, 3, 4 };
 
-            Vector3 average = PolyMath.Average(vertices, indexes);
+            Vector3 average = Math.Average(vertices, indexes);
             Assert.IsTrue(average == new Vector3(0.5f, 0f, 0.5f));
         }
 
@@ -138,7 +169,7 @@ namespace UnityEngine.Polybrush.EditorTests
             //null checks
             Assert.DoesNotThrow(() =>
             {
-                PolyMath.WeightedAverage(null, null, null);
+                Math.WeightedAverage(null, null, null);
             });
 
             Vector3[] vertices = GetVerticesSample();
@@ -149,25 +180,25 @@ namespace UnityEngine.Polybrush.EditorTests
             //create a list of weights, size must be equal to the size of the vertices array
             float[] weights = new float[] { 0, 1, 1, 1, 1, 0 };
             //the weights should not affect the result on this test
-            Vector3 average = PolyMath.WeightedAverage(vertices, indexes, weights);
+            Vector3 average = Math.WeightedAverage(vertices, indexes, weights);
             Assert.IsTrue(average == new Vector3(0.5f, 0f, 0.5f));
 
             //this time only the third corner of the square should be returned
             weights = new float[] { 0, 0, 0, 1, 0, 0 };
-            average = PolyMath.WeightedAverage(vertices, indexes, weights);
+            average = Math.WeightedAverage(vertices, indexes, weights);
             Assert.IsTrue(average == new Vector3(1f, 0f, 1f));
 
             //trying with weights higher than 1
             weights = new float[] { 0, 0, 1, 3, 0, 0 };
-            average = PolyMath.WeightedAverage(vertices, indexes, weights);
+            average = Math.WeightedAverage(vertices, indexes, weights);
             Assert.IsTrue(average == new Vector3(0.75f, 0f, 1f));
         }
 
         [Test]
         public void VectorIsUniform()
         {
-            Assert.IsTrue(PolyMath.VectorIsUniform(Vector3.one));
-            Assert.IsFalse(PolyMath.VectorIsUniform(Vector3.right));
+            Assert.IsTrue(Math.VectorIsUniform(Vector3.one));
+            Assert.IsFalse(Math.VectorIsUniform(Vector3.right));
         }
     }
 }

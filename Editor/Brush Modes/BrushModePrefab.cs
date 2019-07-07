@@ -12,6 +12,8 @@ namespace UnityEditor.Polybrush
     internal class BrushModePrefab : BrushMode
     {
         const string k_PrefabLoadouts = "Polybrush::Editor.PrefabLoadout";
+        internal readonly static float k_PrefabOccurrenceMin = 1;
+        internal readonly static float k_PrefabOccurrenceMax = 100;
 
         // The current prefab palette
         [SerializeField]

@@ -13,6 +13,7 @@ namespace UnityEngine.Polybrush.EditorTests
         private static string _prefabPath;
         private const string path = "Assets/Utility/";
 
+#pragma warning disable 0618
         public static string CreateShaderMetadataTest(string shaderName)
         {
             //load a polybrush shader
@@ -28,10 +29,12 @@ namespace UnityEngine.Polybrush.EditorTests
                 new AttributeLayout(MeshChannel.Color, ComponentIndex.A, Vector2.up, 0, "_Texture4"),
             };
 
+
             //call the function that will create the asset containing meta data
             string path = ShaderMetaDataUtility.SaveMeshAttributesData(shaderToTest, attributes, true);
             return path;
         }
+#pragma warning restore 0618
 
         public void Setup()
         {

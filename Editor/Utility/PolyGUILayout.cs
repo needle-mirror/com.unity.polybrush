@@ -180,25 +180,22 @@ namespace UnityEditor.Polybrush
 			const int pad = 2; 						// texture pad
 			const int selected_rect_height = 10;	// the little green bar and height padding
 
-			int actual_width = (int) Mathf.Ceil(thumbSize + pad/2);
-			int container_width = (int) Mathf.Floor(EditorGUIUtility.currentViewWidth) - margin * 2 - 4;
-			int columns = (int) Mathf.Floor(container_width / actual_width);
-			int fill = (int) Mathf.Floor(((container_width % actual_width) - 1) / columns);
-			int size = thumbSize + fill;
+			int actual_width = thumbSize + pad;
+			int container_width = (int) Mathf.Floor(EditorGUIUtility.currentViewWidth) - ((margin + pad) * 2);
+            // The container_width is currently as wide as the current view - margins and padding.
+            // Adjust it to take the size of the vertical scrollbar.
+            container_width -= (int)GUI.skin.verticalScrollbar.fixedWidth;
+            int columns = (int) Mathf.Floor(container_width / actual_width);
 			int rows = attribsLength / columns + (attribsLength % columns == 0 ? 0 : 1);
-			int height = rows * (size + selected_rect_height);// + margin * 2;
+			int height = rows * (actual_width + selected_rect_height);// + margin * 2;
 
-			Rect r = new Rect(margin + pad, yPos + margin, size, size);
-
-			Rect border = new Rect( margin, yPos + margin, container_width + margin, height + margin );
-			// Draw background
-		    EditorGUI.DrawRect(border, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxOutlineDark : PolyGUI.k_BoxOutlineLight);
-			border.x += 1;
-			border.y += 1;
-			border.width -= 2;
-			border.height -= 2;
-
-			for(int i = 0; i < attribsLength; i++)
+			Rect r = new Rect(margin + pad, yPos, actual_width, actual_width);
+            Rect border = new Rect( margin + pad , yPos, container_width, height);
+            
+            // Draw background
+            EditorGUI.DrawRect(border, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxOutlineDark : PolyGUI.k_BoxOutlineLight);
+            
+            for (int i = 0; i < attribsLength; i++)
 			{
 				if(i > 0 && i % columns == 0)
 				{
@@ -217,7 +214,7 @@ namespace UnityEditor.Polybrush
 					GUI.changed = true;
 				}
 
-				r.x += r.width + pad;
+				r.x += r.width;
 			}
 
 			GUILayoutUtility.GetRect(container_width - 8, height);

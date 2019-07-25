@@ -85,8 +85,8 @@ namespace UnityEditor.Polybrush
             }
 
             radius.floatValue = PolyGUILayout.FloatFieldWithSlider(m_GCRadius, radius.floatValue, brushRadiusMin.floatValue, brushRadiusMax.floatValue);
-            strength.floatValue = PolyGUILayout.FloatFieldWithSlider(m_GCStrength, strength.floatValue, 0f, 1f);
             falloff.floatValue = PolyGUILayout.FloatFieldWithSlider(m_GCFalloff, falloff.floatValue, 0f, 1f);
+            strength.floatValue = PolyGUILayout.FloatFieldWithSlider(m_GCStrength, strength.floatValue, 0f, 1f);
 
             using (new GUILayout.HorizontalScope())
             {

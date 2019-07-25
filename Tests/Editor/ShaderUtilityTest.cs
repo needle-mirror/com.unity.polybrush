@@ -178,8 +178,6 @@ namespace UnityEngine.Polybrush.EditorTests
             FileUtil.CopyFileOrDirectory(k_FilePathToShaderWithOldMetaFormatPBS, k_DestFilePathToShaderWithOldMetaFormatPBS);
             AssetDatabase.Refresh();
 
-            Debug.Log(k_DestFilePathToShaderWithOldMetaFormatPBS);
-
             Shader shader = Shader.Find(k_PathToShaderWithOldMetaFormat);
             Assume.That(shader != null);
 
@@ -200,7 +198,10 @@ namespace UnityEngine.Polybrush.EditorTests
 
             // Clean up
             FileUtil.DeleteFileOrDirectory(k_DestFilePathToShaderWithOldMetaFormat);
+            FileUtil.DeleteFileOrDirectory(k_DestFilePathToShaderWithOldMetaFormat + ".meta");
             FileUtil.DeleteFileOrDirectory(k_DestFilePathToShaderWithOldMetaFormatPBS);
+            FileUtil.DeleteFileOrDirectory(k_DestFilePathToShaderWithOldMetaFormatPBS + ".meta");
+
             AssetDatabase.Refresh();
         }
     }

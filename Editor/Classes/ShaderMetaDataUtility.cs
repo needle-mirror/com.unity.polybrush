@@ -242,7 +242,7 @@ namespace UnityEditor.Polybrush
                 {
                     ShaderMetaDataUtility.SaveShaderMetaData(shader, attributesContainer);
                     FileUtil.DeleteFileOrDirectory(path);
-
+                    FileUtil.DeleteFileOrDirectory(path + ".meta");
                     AssetDatabase.Refresh();
                 }
             }

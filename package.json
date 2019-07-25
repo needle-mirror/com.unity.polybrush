@@ -1,9 +1,9 @@
 {
   "name": "com.unity.polybrush",
   "displayName": "Polybrush",
-  "version": "1.0.0",
+  "version": "1.0.1-preview.1",
   "unity": "2018.3",
-  "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.\n\nIMPORTANT: Polybrush is still in \"Preview\", and may cause instability or even data loss in your project. Please read the Known Issues section of the changelog before using.",
+  "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.",
   "keywords": [
     "modeling",
     "sculpting",
@@ -35,6 +35,6 @@
   "repository": {
     "type": "git",
     "url": "git@github.com:Unity-Technologies/polybrush.git",
-    "revision": "351c912fea1caed3e41bbf901b48e25fc11d4990"
+    "revision": "bcf53e4a173c875bdd76f014c233bba1ec9e9069"
   }
 }

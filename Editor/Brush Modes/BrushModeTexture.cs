@@ -173,7 +173,7 @@ namespace UnityEditor.Polybrush
             using (new GUILayout.HorizontalScope())
             {
                 GUILayout.FlexibleSpace();
-                paintMode = (PaintMode)GUILayout.Toolbar((int)paintMode, Styles.k_ModeIcons, GUILayout.Width(130));
+                paintMode = (PaintMode)GUILayout.Toolbar((int)paintMode, Styles.k_ModeIcons, GUILayout.Width(150));
                 GUILayout.FlexibleSpace();
             }
 

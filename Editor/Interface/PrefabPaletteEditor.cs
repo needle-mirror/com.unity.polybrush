@@ -139,13 +139,10 @@ namespace UnityEditor.Polybrush
             else
             {
                 dropDownZone.height = thumbSize;
-                var r = EditorGUILayout.BeginVertical(GUILayout.Height(thumbSize));
-                EditorGUI.DrawRect(r, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
-                GUILayout.FlexibleSpace();
-                if (GUI.skin.name.Contains("polybrush"))
-                    GUI.Label(dropDownZone, "Drag Prefabs Here!", "dragprefablabel");
-                else
-                    GUI.Label(dropDownZone, "Drag Prefabs Here!", EditorStyles.centeredGreyMiniLabel);
+                var r = EditorGUILayout.BeginVertical(GUILayout.Height(thumbSize+4));
+                    EditorGUI.DrawRect(r, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label("Drag Prefabs Here!", EditorStyles.centeredGreyMiniLabel);
                 GUILayout.FlexibleSpace();
                 EditorGUILayout.EndVertical();
             }

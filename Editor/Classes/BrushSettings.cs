@@ -56,6 +56,7 @@ namespace UnityEditor.Polybrush
             set
             {
                 _radius = Mathf.Clamp(value, brushRadiusMin, brushRadiusMax);
+                _radius = Mathf.Round(_radius * 1000f) / 1000f;
             }
         }
 
@@ -75,6 +76,7 @@ namespace UnityEditor.Polybrush
             set
             {
                 _falloff = Mathf.Clamp(value, 0f, 1f);
+                _falloff = Mathf.Round(_falloff * 1000f) / 1000f;
             }
         }
 
@@ -88,6 +90,7 @@ namespace UnityEditor.Polybrush
             set
             {
                 _strength = Mathf.Clamp(value, 0f, 1f);
+                _strength = Mathf.Round(_strength * 1000f) / 1000f;
             }
         }
 

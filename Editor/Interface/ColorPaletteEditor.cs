@@ -161,9 +161,9 @@ namespace UnityEditor.Polybrush
 
         void GenerateStaticGUIStyle()
         {
-            s_StyleForColorSwatch = new GUIStyle(GUI.skin.button);
-            s_StyleForColorSwatch.border = new RectOffset(4, 4, 4, 4);
-            s_StyleForColorSwatch.padding = new RectOffset(0, 0, 2, 0);
+            s_StyleForColorSwatch = new GUIStyle(GUI.skin.FindStyle("IconButton"));
+            s_StyleForColorSwatch.border = new RectOffset(0, 0, 0, 0);
+            s_StyleForColorSwatch.padding = new RectOffset(0, 0, 0, 0);
             s_StyleForColorSwatch.margin = new RectOffset(-1, -1, 0, 0);
             s_StyleForColorSwatch.richText = false;
             s_StyleForColorSwatch.imagePosition = ImagePosition.ImageOnly;

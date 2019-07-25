@@ -131,8 +131,7 @@ namespace UnityEditor.Polybrush
 
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField("Preview Size");
-                s_PreviewThumbSize.value = (int)EditorGUILayout.Slider((float)s_PreviewThumbSize, 60f, 128f);
+                s_PreviewThumbSize.value = (int)EditorGUILayout.Slider("Preview Size", (float)s_PreviewThumbSize, 60f, 128f);
 
             }
 

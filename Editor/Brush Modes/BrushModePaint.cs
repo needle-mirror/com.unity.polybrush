@@ -191,7 +191,7 @@ namespace UnityEditor.Polybrush
                     RefreshAvailablePalettes();
 
                 EditorGUI.BeginChangeCheck();
-                m_CurrentPaletteIndex = EditorGUILayout.Popup(m_CurrentPaletteIndex, m_AvailablePalettesAsString, GUILayout.Height(30));
+                m_CurrentPaletteIndex = EditorGUILayout.Popup(m_CurrentPaletteIndex, m_AvailablePalettesAsString);
                 if (EditorGUI.EndChangeCheck())
                 {
                     if (m_CurrentPaletteIndex >= m_AvailablePalettes.Length)
@@ -200,7 +200,7 @@ namespace UnityEditor.Polybrush
                         SetColorPalette(m_AvailablePalettes[m_CurrentPaletteIndex]);
                 }
 
-                paintMode = (PaintMode)GUILayout.Toolbar((int)paintMode, modeIcons, GUILayout.Height(15));
+                paintMode = (PaintMode)GUILayout.Toolbar((int)paintMode, modeIcons);
             }
 
 			if(!m_LikelySupportsVertexColors)

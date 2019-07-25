@@ -17,10 +17,7 @@ namespace UnityEditor.Polybrush
             {
                 if (m_HelpStyle == null)
                 {
-                    m_HelpStyle = new GUIStyle(GUI.skin.button);
-                    m_HelpStyle.normal.background = null;
-                    m_HelpStyle.active.background = null;
-                    m_HelpStyle.padding = new RectOffset(0, 0, 0, 0);
+					m_HelpStyle = GUI.skin.FindStyle("IconButton");
                 }
                 return m_HelpStyle;
             }
@@ -43,23 +40,23 @@ namespace UnityEditor.Polybrush
             {
                 if (gc != null)
                 {
-                    EditorGUILayout.LabelField(gc, GUILayout.Width(EditorGUIUtility.currentViewWidth - 180));
+                    EditorGUILayout.LabelField(gc, GUILayout.Width(EditorGUIUtility.currentViewWidth - 160));
                 }
 
                 bool newValue;
-                newValue = GUILayout.Toggle(mask.r, "R", "Button", GUILayout.Width(30));
+                newValue = GUILayout.Toggle(mask.r, "R", "Button");
                 if (newValue != mask.r)
                     mask.r = !mask.r;
 
-                newValue = GUILayout.Toggle(mask.g, "G", "Button", GUILayout.Width(30));
+                newValue = GUILayout.Toggle(mask.g, "G", "Button");
                 if (newValue != mask.g)
                     mask.g = !mask.g;
 
-                newValue = GUILayout.Toggle(mask.b, "B", "Button", GUILayout.Width(30));
+                newValue = GUILayout.Toggle(mask.b, "B", "Button");
                 if (newValue != mask.b)
                     mask.b = !mask.b;
 
-                newValue = GUILayout.Toggle(mask.a, "A", "Button", GUILayout.Width(30));
+                newValue = GUILayout.Toggle(mask.a, "A", "Button");
                 if (newValue != mask.a)
                     mask.a = !mask.a;
             }
@@ -334,7 +331,7 @@ namespace UnityEditor.Polybrush
         {
             using (new GUILayout.HorizontalScope())
             {
-                GUILayout.Label(title);
+                GUILayout.Label(title, GUILayout.Width(140));
                 int selection = EditorGUILayout.Popup(selectionIndex, values);
                 return selection;
             }
@@ -344,8 +341,8 @@ namespace UnityEditor.Polybrush
 		{
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(gc);
-                float ret = EditorGUILayout.FloatField(value, "textfield", GUILayout.MaxWidth(System.Math.Min(64, EditorGUIUtility.currentViewWidth / 2)));
+                EditorGUILayout.LabelField(gc, GUILayout.Width(140));
+                float ret = EditorGUILayout.FloatField(value, "textfield");
 
                 return ret;
             }

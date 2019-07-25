@@ -356,7 +356,7 @@ namespace UnityEditor.Polybrush
                 {
                     EditorGUI.BeginChangeCheck();
 
-                    m_CurrentBrushIndex = EditorGUILayout.Popup(m_CurrentBrushIndex, m_AvailableBrushesStrings, "Popup");
+                    m_CurrentBrushIndex = EditorGUILayout.Popup(m_CurrentBrushIndex, m_AvailableBrushesStrings);
 
                     if (EditorGUI.EndChangeCheck())
                     {
@@ -366,7 +366,7 @@ namespace UnityEditor.Polybrush
                             SetBrushSettings(m_AvailableBrushes[m_CurrentBrushIndex]);
                     }
 
-                    if (GUILayout.Button(m_GCSaveBrushSettings, GUILayout.Width(40)))
+                    if (GUILayout.Button(m_GCSaveBrushSettings, GUILayout.Width(50)))
                     {
                         if (brushSettings != null && brushSettingsAsset != null)
                         {

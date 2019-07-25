@@ -110,14 +110,11 @@ namespace UnityEditor.Polybrush
             backGroundRect.width = EditorGUIUtility.currentViewWidth;
             if (count == 0)
             {
-                var r = EditorGUILayout.BeginVertical(GUILayout.Height(thumbSize));
-                EditorGUI.DrawRect(r, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
-                GUILayout.FlexibleSpace();
-                if (GUI.skin.name.Contains("polybrush"))
-                    EditorGUILayout.LabelField("No loadout selected yet", "dragprefablabel");
-                else
-                    EditorGUILayout.LabelField("No loadout selected yet", EditorStyles.centeredGreyMiniLabel);
-                GUILayout.FlexibleSpace();
+                var r = EditorGUILayout.BeginVertical(GUILayout.Height(thumbSize+4));
+                    EditorGUI.DrawRect(r, EditorGUIUtility.isProSkin ? PolyGUI.k_BoxBackgroundDark : PolyGUI.k_BoxBackgroundLight);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label("Select items from the Palette below", EditorStyles.centeredGreyMiniLabel);
+                    GUILayout.FlexibleSpace();
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
                 return;

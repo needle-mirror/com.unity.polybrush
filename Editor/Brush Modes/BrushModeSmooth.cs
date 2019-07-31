@@ -105,7 +105,7 @@ namespace UnityEditor.Polybrush
                         if (s_SmoothDirection == PolyDirection.BrushNormal)
                         {
                             if (s_UseFirstNormalVector)
-                                dirVec = brushNormalOnBeginApply[ri];
+                                dirVec = brushNormalOnBeginApply[ri].normalized;
                             else
                                 dirVec = Math.WeightedAverage(normals, neighborLookup[index], hit.weights).normalized;
                         }

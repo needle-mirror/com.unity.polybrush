@@ -544,7 +544,7 @@ namespace UnityEngine.Polybrush
 					Vector3 n = Math.Average(normals, l);
 
 					for (int j = 0; j < l.Length; ++j)
-						normals[j] = n;
+						normals[l[j]] = n;
 				}
 
 				mesh.normals = normals;

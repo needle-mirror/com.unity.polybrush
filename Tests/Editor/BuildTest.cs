@@ -8,7 +8,7 @@ namespace UnityEngine.Polybrush.EditorTests
     public class BuildTest
     {
         static readonly string k_ScenesDestinationFolderPath = Application.dataPath + "/Scenes";
-        static readonly string k_TestScene1FilePath = ShaderMetaDataTests.testsRootDirectory + "/Scenes/TestSceneWithPolybrushObject.unity";
+        static readonly string k_TestScene1FilePath = TestsUtility.testsRootDirectory + "/Scenes/TestSceneWithPolybrushObject.unity";
         static readonly string k_TestScene1DestinationFilePath = Application.dataPath + "/Scenes/TestSceneWithPolybrushObject.unity";
         static readonly string k_BuildFolder = Application.dataPath + "/../Builds";
         static readonly string k_BuildName = "Test.exe";

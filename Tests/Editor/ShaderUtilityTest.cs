@@ -6,16 +6,10 @@ using UnityEditor;
 using System.Text.RegularExpressions;
 using System.IO;
 
-#if UNITY_2019_2_OR_NEWER
-using System.Reflection;
-using PackageInfo = UnityEditor.PackageManager.PackageInfo;
-#endif
-
 namespace UnityEngine.Polybrush.EditorTests
 {
     /// <summary>
     /// Will test all shader utility functions
-    /// won't test:
     /// </summary>
     public class ShaderMetaDataTests
     {
@@ -24,27 +18,12 @@ namespace UnityEngine.Polybrush.EditorTests
         const string k_InvalidPathToShader = "Hidden/Polybrush/Tests/InvalidName";
 
         string k_PathToShaderWithOldMetaFormat = "Hidden/Polybrush/Tests/ShaderWithOldMetaFormat";
-        string k_FilePathToShaderWithOldMetaFormat = testsRootDirectory + "/Resources/TestShaderWithOldMetaFormat.shader_";
-        string k_FilePathToShaderWithOldMetaFormatPBS = testsRootDirectory + "/Resources/TestShaderWithOldMetaFormat.pbs.json";
+        string k_FilePathToShaderWithOldMetaFormat = TestsUtility.testsRootDirectory + "/Resources/TestShaderWithOldMetaFormat.shader_";
+        string k_FilePathToShaderWithOldMetaFormatPBS = TestsUtility.testsRootDirectory + "/Resources/TestShaderWithOldMetaFormat.pbs.json";
         string k_DestFilePathToShaderWithOldMetaFormat = Application.dataPath + "/Shader/TestShaderWithOldMetaFormat.shader";
         string k_DestFilePathToShaderWithOldMetaFormatPBS = Application.dataPath + "/Shader/TestShaderWithOldMetaFormat.pbs.json";
 
         string k_AssetShaderFolder = Application.dataPath + "/Shader";
-
-        public static string testsRootDirectory
-        {
-            get
-            {
-#if UNITY_2019_2_OR_NEWER
-                var packageName = PackageInfo.FindForAssembly(Assembly.GetExecutingAssembly()).name;
-                return "Packages/" + packageName + "/Tests";
-#else
-                if (Directory.Exists("Packages/com.unity.polybrush/Tests"))
-                    return "Packages/com.unity.polybrush/Tests";
-                return "Packages/com.unity.polybrush.tests/Tests";
-#endif
-            }
-        }
 
         private static Texture GetTextureFromPackagesByName(string name)
         {

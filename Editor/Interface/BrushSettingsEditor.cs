@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
 
 namespace UnityEditor.Polybrush
 {
@@ -34,12 +35,6 @@ namespace UnityEditor.Polybrush
 
 		internal void OnEnable()
 		{
-            if (this == null)
-                return;
-             
-			if(serializedObject == null)
-				GameObject.DestroyImmediate(this);
-
 			/// User settable
 			radius = serializedObject.FindProperty("_radius");
 			falloff = serializedObject.FindProperty("_falloff");
@@ -150,5 +145,23 @@ namespace UnityEditor.Polybrush
 
 			return null;
 		}
-	}
+
+        static internal BrushSettings LoadBrushSettingsAssets(string assetName)
+        {
+            BrushSettings settings;
+            settings = AssetDatabase.LoadAssetAtPath<BrushSettings>(AssetDatabase.GUIDToAssetPath(EditorPrefs.GetString(assetName, "")));
+
+            return settings;
+        }
+
+        static internal IReadOnlyCollection<BrushSettings> GetAvailableBrushes()
+        {
+            List<BrushSettings> brushes = PolyEditorUtility.GetAll<BrushSettings>();
+
+            if (brushes.Count < 1)
+                brushes.Add(PolyEditorUtility.GetFirstOrNew<BrushSettings>());
+
+            return brushes;
+        }
+    }
 }

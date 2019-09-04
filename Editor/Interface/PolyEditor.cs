@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
+using System;
 
 namespace UnityEditor.Polybrush
 {
@@ -53,9 +54,9 @@ namespace UnityEditor.Polybrush
         [SerializeField]
         BrushSettings brushSettingsAsset;
 
-        double m_LastBrushUpdate = 0.0;
         // Editor for the current brush settings.
         BrushSettingsEditor m_BrushEditor = null;
+        double m_LastBrushUpdate = 0.0;
 
         /// <summary>
         /// Editor for the brush mirror settings
@@ -68,7 +69,7 @@ namespace UnityEditor.Polybrush
         Dictionary<GameObject, BrushTarget> m_Hovering = new Dictionary<GameObject, BrushTarget>();
         GameObject m_LastHoveredGameObject = null;
         int m_CurrentBrushIndex = 0;
-        List<BrushSettings> m_AvailableBrushes = null;
+        IReadOnlyCollection<BrushSettings> m_AvailableBrushes = null;
         string[] m_AvailableBrushesStrings = null;
 
         // Keep track of the objects that have been registered for undo, allowing the editor to
@@ -183,25 +184,7 @@ namespace UnityEditor.Polybrush
 			// force update the preview
 			m_LastHoveredGameObject = null;
 
-            if (brushSettings == null)
-			{
-                if (brushSettingsAsset == null)
-                    brushSettingsAsset = AssetDatabase.LoadAssetAtPath<BrushSettings>(AssetDatabase.GUIDToAssetPath(EditorPrefs.GetString(k_BrushSettingsAssetPref, "")));
-
-				if (EditorPrefs.HasKey(k_BrushSettingsPref))
-				{
-					brushSettings = ScriptableObject.CreateInstance<BrushSettings>();
-                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(k_BrushSettingsPref), brushSettings);
-                    if (EditorPrefs.HasKey(k_BrushSettingsName))
-                        brushSettings.name = EditorPrefs.GetString(k_BrushSettingsName);
-				}
-				else
-				{
-					SetBrushSettings(brushSettingsAsset != null ? brushSettingsAsset : PolyEditorUtility.GetFirstOrNew<BrushSettings>());
-				}
-			}
-
-			RefreshAvailableBrushes();
+			EnsureBrushSettingsListIsValid();
 
             SetTool(BrushTool.RaiseLower, false);
 
@@ -224,7 +207,6 @@ namespace UnityEditor.Polybrush
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.UnsubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
 #endif
-
 
             // store local changes to brushSettings
             if (brushSettings != null)
@@ -252,10 +234,11 @@ namespace UnityEditor.Polybrush
             foreach (BrushMode m in modes)
 				GameObject.DestroyImmediate(m);
 
-			if(brushSettings != null)
-				GameObject.DestroyImmediate(brushSettings);
 
-			if(m_BrushEditor != null)
+            if (brushSettings != null)
+                GameObject.DestroyImmediate(brushSettings);
+
+            if (m_BrushEditor != null)
 				GameObject.DestroyImmediate(m_BrushEditor);
 		}
 
@@ -343,6 +326,8 @@ namespace UnityEditor.Polybrush
 
         void DrawBrushSettings()
         {
+            EnsureBrushSettingsListIsValid();
+
            // Brush preset selector
             using (new GUILayout.VerticalScope("box"))
             {
@@ -363,7 +348,7 @@ namespace UnityEditor.Polybrush
                         if (m_CurrentBrushIndex >= m_AvailableBrushes.Count)
                             SetBrushSettings(BrushSettingsEditor.AddNew(brushSettings));
                         else
-                            SetBrushSettings(m_AvailableBrushes[m_CurrentBrushIndex]);
+                            SetBrushSettings(m_AvailableBrushes.ElementAt<BrushSettings>(m_CurrentBrushIndex));
                     }
 
                     if (GUILayout.Button(m_GCSaveBrushSettings, GUILayout.Width(50)))
@@ -499,24 +484,39 @@ namespace UnityEditor.Polybrush
 				mode.OnEnable();
 			}
 
-            RefreshAvailableBrushes();
+            EnsureBrushSettingsListIsValid();
 			Repaint();
 		}
 
         /// <summary>
-        /// Refresh the list of available BrushSettings
+        /// Makes sure we always have a valid BrushSettings selected in Polybrush then refresh the available list for the EditorWindow.
+        /// Will create a new file if it cannot find any.
         /// </summary>
-		internal void RefreshAvailableBrushes()
+		internal void EnsureBrushSettingsListIsValid()
 		{
-            m_AvailableBrushes = PolyEditorUtility.GetAll<BrushSettings>();
+            if (brushSettings == null)
+            {
+                if (brushSettingsAsset == null)
+                    brushSettingsAsset = BrushSettingsEditor.LoadBrushSettingsAssets(EditorPrefs.GetString(k_BrushSettingsAssetPref, ""));
 
-			if(m_AvailableBrushes.Count < 1)
-				m_AvailableBrushes.Add(PolyEditorUtility.GetFirstOrNew<BrushSettings>());
+                if (EditorPrefs.HasKey(k_BrushSettingsPref))
+                {
+                    brushSettings = ScriptableObject.CreateInstance<BrushSettings>();
+                    JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(k_BrushSettingsPref), brushSettings);
+                    if (EditorPrefs.HasKey(k_BrushSettingsName))
+                        brushSettings.name = EditorPrefs.GetString(k_BrushSettingsName);
+                }
+                else
+                {
+                    SetBrushSettings(brushSettingsAsset != null ? brushSettingsAsset : PolyEditorUtility.GetFirstOrNew<BrushSettings>());
+                }
+            }
 
-			m_CurrentBrushIndex = System.Math.Max(m_AvailableBrushes.FindIndex(x => x.name.Equals(brushSettings.name)), 0);
+            m_AvailableBrushes = BrushSettingsEditor.GetAvailableBrushes();
 
-			m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
-
+            m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
+            m_CurrentBrushIndex = System.Math.Max(Array.FindIndex<string>(m_AvailableBrushesStrings, x => x == brushSettings.name), 0);
+            
 			ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, string.Empty);
 			ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, "Add Brush...");
 		}
@@ -536,9 +536,6 @@ namespace UnityEditor.Polybrush
         /// <param name="settings">The new brush settings</param>
 		internal void SetBrushSettings(BrushSettings settings)
 		{
-			if(settings == null)
-				return;
-
 			if(brushSettings != null && brushSettings != settings)
 				DestroyImmediate(brushSettings);
 
@@ -548,10 +545,6 @@ namespace UnityEditor.Polybrush
 			brushSettingsAsset = settings;
 			brushSettings = settings.DeepCopy();
 			brushSettings.hideFlags = HideFlags.HideAndDontSave;
-
-			RefreshAvailableBrushes();
-
-			Repaint();
 		}
 
 		void OnSceneGUI(SceneView sceneView)

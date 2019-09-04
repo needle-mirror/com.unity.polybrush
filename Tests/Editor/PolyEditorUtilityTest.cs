@@ -1,17 +1,21 @@
-﻿using UnityEngine.TestTools;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System.IO;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Polybrush;
+using System;
 
 namespace UnityEngine.Polybrush.EditorTests
 {
-    public class PolyEditorUtilityTest : IPrebuildSetup, IPostBuildCleanup
+    public class PolyEditorUtilityTest
     {
+        private static string k_PrefabAssetCommonPath = "/Templates/PolyEditorUtilityTests/TestGameObject.prefab";
+        private static string k_PrefabAssetPath = TestsUtility.testsRootDirectory  + k_PrefabAssetCommonPath;
+        private static string k_PrefabAssetCopyInAssetsFolder = Application.dataPath + k_PrefabAssetCommonPath;
+        private static string k_PrefabAssetCopyInAssetFolderRelativePath = "Assets" + k_PrefabAssetCommonPath;
+        private static string k_UtilityFolderPath = Application.dataPath + "/Templates/PolyEditorUtilityTests";
+
         private GameObject _testGameObject, _childTestGameObject, _prefab;
-        private static string _prefabPath;
-        private const string path = "Assets/Utility/";
 
 #pragma warning disable 0618
         public static string CreateShaderMetadataTest(string shaderName)
@@ -36,57 +40,26 @@ namespace UnityEngine.Polybrush.EditorTests
         }
 #pragma warning restore 0618
 
-        public void Setup()
-        {
-            //ensure directory existence
-            if(!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
-            //create a gameobject from a primitive and a prefab from it
-            GameObject testGameObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            testGameObject.name = "TestGameObject";
-            GameObject child = new GameObject("Child");
-            child.transform.SetParent(testGameObject.transform, false);
-
-            //mesh asset creation
-            Mesh mesh = Object.Instantiate(testGameObject.GetComponent<MeshFilter>().sharedMesh);
-            mesh.name = "MeshTest";
-            AssetDatabase.CreateAsset(mesh, path + "MeshTest.asset");
-            testGameObject.GetComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath(path + "MeshTest.asset", typeof(Mesh)) as Mesh;
-
-            _prefabPath = path + testGameObject.name + ".prefab";
-
-            GameObject prefab = PrefabUtility.SaveAsPrefabAssetAndConnect(testGameObject, _prefabPath, InteractionMode.AutomatedAction);
-
-            //prevents leak?
-            Object.DestroyImmediate(testGameObject);
-        }
-
-        [SetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
-            //retrieve a ref from the prefab created at the begining
-            _prefab = AssetDatabase.LoadAssetAtPath(_prefabPath, typeof(GameObject)) as GameObject;
+            if (!Directory.Exists(k_UtilityFolderPath))
+                Directory.CreateDirectory(k_UtilityFolderPath);
+            FileUtil.CopyFileOrDirectory(k_PrefabAssetPath, k_PrefabAssetCopyInAssetsFolder);
+            AssetDatabase.Refresh();
+
+            _prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_PrefabAssetCopyInAssetFolderRelativePath);
             _testGameObject = Object.Instantiate(_prefab);
             _childTestGameObject = _testGameObject.transform.GetChild(0).gameObject;
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
-            //cleanup
-            UnityEngine.Object.DestroyImmediate(_testGameObject);
-        }
-
-        /// <summary>
-        /// Warning, not called in 2018.2.0f2 > 2018.2.2f1, only caleed on playmode unit tests (issue may be fixed in further unity version, will let the prefab on the asset folder right now
-        /// </summary>
-        public void Cleanup()
-        {
-            //destroy
-            AssetDatabase.DeleteAsset(_prefabPath);
+            Object.DestroyImmediate(_testGameObject, true);
+            FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates");
+            
+            AssetDatabase.Refresh();
         }
 
         /// <summary>
@@ -182,6 +155,8 @@ namespace UnityEngine.Polybrush.EditorTests
         [Test]
         public void GetAll()
         {
+            const string folder = "Assets/Templates/PolyEditorUtilityTests/";
+
             RemoveAllGenericTypeAssets();
 
             //create two assets
@@ -189,11 +164,14 @@ namespace UnityEngine.Polybrush.EditorTests
             UnitTestGenericType asset2 = ScriptableObject.CreateInstance<UnitTestGenericType>();
             EditorUtility.SetDirty(asset1);
             EditorUtility.SetDirty(asset2);
-            AssetDatabase.CreateAsset(asset1, path + "UnitTestGenericType1.asset");
-            AssetDatabase.CreateAsset(asset2, path + "UnitTestGenericType2.asset");
+            AssetDatabase.CreateAsset(asset1, folder + "UnitTestGenericType1.asset");
+            AssetDatabase.CreateAsset(asset2, folder + "UnitTestGenericType2.asset");
+
+            AssetDatabase.Refresh();
+
             //check if existing
-            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<UnitTestGenericType>(path + "UnitTestGenericType1.asset"));
-            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<UnitTestGenericType>(path + "UnitTestGenericType2.asset"));
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<UnitTestGenericType>(folder + "UnitTestGenericType1.asset"));
+            Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<UnitTestGenericType>(folder + "UnitTestGenericType2.asset"));
 
             //now load them with the utility function
             List<UnitTestGenericType> allAssets = PolyEditorUtility.GetAll<UnitTestGenericType>();
@@ -201,8 +179,10 @@ namespace UnityEngine.Polybrush.EditorTests
             Assert.IsTrue(allAssets.Count == 2);
 
             //cleanup
-            AssetDatabase.DeleteAsset(path + "UnitTestGenericType1.asset");
-            AssetDatabase.DeleteAsset(path + "UnitTestGenericType2.asset");
+            AssetDatabase.DeleteAsset(folder + "UnitTestGenericType1.asset");
+            AssetDatabase.DeleteAsset(folder + "UnitTestGenericType2.asset");
+
+            AssetDatabase.Refresh();
         }
     }
 }

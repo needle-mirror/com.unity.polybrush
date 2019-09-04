@@ -4,32 +4,41 @@ using UnityEditor.Polybrush;
 using UnityEditor;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 namespace UnityEngine.Polybrush.EditorTests
 {
-    public class PolySceneUtilityTest: IPrebuildSetup
+    public class PolySceneUtilityTest
     {
         private static string _prefabPath;
-        private const string path = "Assets/Utility/";
+        private const string k_TestsFolderRelativePath = "Assets/Templates/PolySceneUtility/";
+        private static string k_TestsFolderFullPath = Application.dataPath + "/Templates/PolySceneUtility/";
 
         private GameObject _testGameObject;
 
-        public void Setup()
+        [OneTimeSetUp]
+        public void SetUp()
         {
+            if (!Directory.Exists(k_TestsFolderFullPath))
+                Directory.CreateDirectory(k_TestsFolderFullPath);
+
             //create a cube to ensure consistent and easier results to test with functions like WorldRaycast
             GameObject testGameObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
             testGameObject.name = "PolySceneUtilityTest";
 
-            _prefabPath = path + testGameObject.name + ".prefab";
-            
-            GameObject prefab = PrefabUtility.SaveAsPrefabAssetAndConnect(testGameObject, _prefabPath, InteractionMode.AutomatedAction);
-        }
+            _prefabPath = k_TestsFolderRelativePath + testGameObject.name + ".prefab";
 
-        [SetUp]
-        public void SetUp()
-        {
+            PrefabUtility.SaveAsPrefabAssetAndConnect(testGameObject, _prefabPath, InteractionMode.AutomatedAction);
+
             GameObject prefab = AssetDatabase.LoadAssetAtPath(_prefabPath, typeof(GameObject)) as GameObject;
             _testGameObject = Object.Instantiate(prefab);
+        }
+
+        [OneTimeTearDown]
+        public void TearDown()
+        {
+            FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates");
+            AssetDatabase.Refresh();
         }
 
         [Test]

@@ -96,6 +96,35 @@ namespace UnityEngine.Polybrush
 								(byte) (255 * vec.w) );
 		}
 
+        internal void SetChannelBaseTextureWeights(MeshChannel channel, Dictionary<int, int> baseTexToMask, Dictionary<int, List<int>> maskToIndices)
+        {
+            var channelWeights = weights[channelMap[channel]];
+            for (int i = 0; i < channelWeights.Length; i++)
+            {
+                var vertexWeight = channelWeights[i];
+                foreach(var pair in baseTexToMask)
+                {
+                    // Calculate the weight out of one already used for this mask,
+                    // and set the weight of the base texture to the remainder.
+                    // e.g. if all textures are on the same mask, the base texture is at
+                    //      index 0 and the vector looks like: (0, 0.2, 0.3, 0.4).
+                    //      Then 1 - (0.2 + 0.3 + 0.4) = 0.1, and the vector becomes: (0.1, 0.2, 0.3, 0.4).
+                    float value = 0f;
+                    List<int> indices;
+                    if (maskToIndices.TryGetValue(pair.Value, out indices))
+                    {
+                        foreach (var ind in indices)
+                        {
+                            value += vertexWeight[ind];
+                        }
+                    }
+                    vertexWeight[pair.Key] = 1 - value;
+                }
+                channelWeights[i] = vertexWeight;
+            }
+            weights[channelMap[channel]] = channelWeights;
+        }
+
         /// <summary>
         /// Initialize a SplatSet with mesh and attribute layout.
         /// </summary>
@@ -215,7 +244,7 @@ namespace UnityEngine.Polybrush
         /// <param name="rhs"></param>
         /// <param name="strength"></param>
         /// <param name="index"></param>
-        internal void LerpWeightOnSingleChannel(SplatSet lhs, SplatWeight rhs, float strength, int index)
+        internal void LerpWeightOnSingleChannel(SplatSet lhs, SplatWeight rhs, float strength, int index, int baseTexIndex)
         {
             for (int i = 0; i < weightCount; i++)
             {
@@ -226,6 +255,12 @@ namespace UnityEngine.Polybrush
                     // replace the original value at index with the lerped value
                     var newWeightVector = lhs.weights[cm.Value][i];
                     newWeightVector[index] = lerpedValue;
+
+                    if(baseTexIndex > -1)
+                    {
+                        newWeightVector[baseTexIndex] += (lhs.weights[cm.Value][i][index] - newWeightVector[index]);
+                    }
+
                     this.weights[cm.Value][i] = newWeightVector;
                 }
             }

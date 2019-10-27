@@ -28,7 +28,7 @@ namespace UnityEngine.Polybrush
             PolyEditor.instance.Close();
         }
 
-        //[UnityTest]
+        [UnityTest]
         public IEnumerator EditorEnterPlayMode_NoConsoleLogs()
         {
             Assume.That(PolyEditor.instance != null);

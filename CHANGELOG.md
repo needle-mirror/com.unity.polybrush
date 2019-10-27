@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Known Issues
 - Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
 
+## [1.0.2-preview.1] - 2019-10-28
+### Bug fixes
+- Fixed errors when unloading scenes in certain cases.
+
+### Changes
+- Renamed LWRP to Universal Rendering Pipeline.
+
 ## [1.0.1] - 2019-09-05
 ### Bug fixes
 - Fixed errors when entering playmode.

@@ -103,6 +103,12 @@ namespace UnityEngine.Polybrush
 
 		internal static readonly Vector2 NormalizedRange = new Vector2(0f, 1f);
 
+        /// <summary>
+        /// The texture to place for vertices that have no other texture set.
+        /// Can have max one per group/mask.
+        /// </summary>
+        [SerializeField] internal bool isBaseTexture = false;
+
         // Which mesh attribute to apply values to (color, tangent, uv, etc)
         [SerializeField] internal MeshChannel channel;
 
@@ -138,12 +144,13 @@ namespace UnityEngine.Polybrush
 		internal AttributeLayout(MeshChannel channel, ComponentIndex index) : this(channel, index, Vector2.up, DefaultMask)
 		{}
 
-		internal AttributeLayout(MeshChannel channel, ComponentIndex index, Vector2 range, int mask)
+		internal AttributeLayout(MeshChannel channel, ComponentIndex index, Vector2 range, int mask, bool isBaseTexture = false)
 		{
 			this.channel = channel;
 			this.index = index;
 			this.range = range;
 			this.mask = mask;
+            this.isBaseTexture = isBaseTexture;
 		}
 
 		internal AttributeLayout(MeshChannel channel, ComponentIndex index, Vector2 range, int mask, string targetProperty, Texture2D texture = null)
@@ -159,7 +166,8 @@ namespace UnityEngine.Polybrush
 					propertyTarget.Equals(other.propertyTarget) &&
 					index == other.index &&
 					range == other.range &&
-					mask == other.mask;
+					mask == other.mask &&
+                    isBaseTexture == other.isBaseTexture;
 		}
 
 		public override string ToString()

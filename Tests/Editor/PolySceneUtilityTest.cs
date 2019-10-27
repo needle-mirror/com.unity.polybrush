@@ -38,6 +38,7 @@ namespace UnityEngine.Polybrush.EditorTests
         public void TearDown()
         {
             FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates");
+            FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates.meta");
             AssetDatabase.Refresh();
         }
 

@@ -378,13 +378,18 @@ namespace UnityEngine.Polybrush
         }
 
         void OnDestroy()
-        { 
+        {
             // Time.frameCount is zero when loading scenes in the Editor. It's the only way I could figure to
             // differentiate between OnDestroy invoked from user delete & editor scene loading.
             if (Application.isEditor &&
                 !Application.isPlaying &&
                 Time.frameCount > 0)
             {
+                // Re-assign source mesh only if it has changed.
+                // Likely to happen with ProBuilder.
+                if (type == ObjectType.Mesh && sourceMesh == componentsCache.MeshFilter.sharedMesh)
+                    return;
+
                 SetMesh(sourceMesh);
             }
         }

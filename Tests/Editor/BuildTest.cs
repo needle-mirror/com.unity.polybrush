@@ -38,7 +38,7 @@ namespace UnityEngine.Polybrush.EditorTests
             AssetDatabase.Refresh();
         }
 
-        //[Test]
+        [Test]
         [UnityPlatform(new RuntimePlatform[] { RuntimePlatform.WindowsEditor })]
         public void BuildSceneWithPolybrushObjectOnWindows_Success()
         {
@@ -47,7 +47,7 @@ namespace UnityEngine.Polybrush.EditorTests
             BuildPipeline.BuildPlayer(options);
         }
 
-        //[Test]
+        [Test]
         [UnityPlatform(new RuntimePlatform[] { RuntimePlatform.OSXEditor })]
         public void BuildSceneWithPolybrushObjectOnOSX_Success()
         {

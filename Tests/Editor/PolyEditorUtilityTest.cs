@@ -58,7 +58,8 @@ namespace UnityEngine.Polybrush.EditorTests
         {
             Object.DestroyImmediate(_testGameObject, true);
             FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates");
-            
+            FileUtil.DeleteFileOrDirectory(Application.dataPath + "/Templates.meta");
+
             AssetDatabase.Refresh();
         }
 

@@ -1,5 +1,0 @@
-{
-    "displayName":"Shader Examples (LWRP)",
-    "description": "Polybrush shader examples compatible with Unity Lightweight rendering pipeline.",
-    "createSeparatePackage": false
-}

@@ -56,7 +56,7 @@ namespace UnityEditor.Polybrush
             // If the prefab paint mode is the current one in polybrush, 
             // and the prefab that has just been deleted is in the loadout,
             // Need to remove it from there or error spam will occur
-            PolyEditor editor = PolyEditor.instance;
+            PolybrushEditor editor = PolybrushEditor.instance;
             if (editor == null || editor.tool != BrushTool.Prefab)
             {
                 return;

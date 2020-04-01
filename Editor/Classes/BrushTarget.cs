@@ -80,6 +80,12 @@ namespace UnityEditor.Polybrush
 			if(mesh == null)
 				return null;
 
+            if (vertexCount != _weights.Length)
+            {
+                _weights = new float[vertexCount];
+                rebuildCache = true;
+            }
+
 			if(!rebuildCache)
 				return _weights;
 

@@ -189,7 +189,7 @@ namespace UnityEditor.Polybrush
                     if (onSelectionChanged != null)
                         onSelectionChanged(null);
 
-                    PolyEditor.DoRepaint();
+                    PolybrushEditor.DoRepaint();
                 }
             }
 

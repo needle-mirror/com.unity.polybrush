@@ -105,7 +105,7 @@ namespace UnityEditor.Polybrush
 				m_SourceIndex = m_QueuedSourceIndex;
 				m_DestinationIndex = m_QueuedDestinationIndex;
 
-				PolyEditor.DoRepaint();
+				PolybrushEditor.DoRepaint();
 			}
 
 			public override string ToString()
@@ -314,7 +314,7 @@ namespace UnityEditor.Polybrush
                 GUI.Label(r, "", s_StyleForColorSwatch);
 				GUI.backgroundColor = Color.white;
 
-				PolyEditor.DoRepaint();
+				PolybrushEditor.DoRepaint();
 				Repaint();
 			}
 
@@ -335,7 +335,7 @@ namespace UnityEditor.Polybrush
 
 					m_Drag.Reset();
 
-					PolyEditor.DoRepaint();
+					PolybrushEditor.DoRepaint();
 					Repaint();
 				}
 				break;

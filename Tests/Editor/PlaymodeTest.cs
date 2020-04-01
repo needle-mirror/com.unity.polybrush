@@ -16,7 +16,7 @@ namespace UnityEngine.Polybrush
             Application.logMessageReceived += Application_logMessageReceived;
 
             MenuItems.MenuInitEditorWindow();
-            PolyEditor.instance.Focus();
+            PolybrushEditor.instance.Focus();
             m_ReceivedLogsCount = 0;
         }
 
@@ -25,13 +25,13 @@ namespace UnityEngine.Polybrush
         {
             Application.logMessageReceived -= Application_logMessageReceived;
 
-            PolyEditor.instance.Close();
+            PolybrushEditor.instance.Close();
         }
 
         [UnityTest]
         public IEnumerator EditorEnterPlayMode_NoConsoleLogs()
         {
-            Assume.That(PolyEditor.instance != null);
+            Assume.That(PolybrushEditor.instance != null);
 
             yield return new EnterPlayMode();
 

@@ -13,10 +13,10 @@ namespace UnityEditor.Polybrush
     /// <summary>
     /// Interface and settings for Polybrush
     /// </summary>
-    internal class PolyEditor : EditorWindow
+    internal class PolybrushEditor : ConfigurableWindow
 	{
-		static PolyEditor s_Instance = null;
-		internal static PolyEditor instance { get { return s_Instance; } }
+		static PolybrushEditor s_Instance = null;
+		internal static PolybrushEditor instance { get { return s_Instance; } }
 
 		const string k_BrushSettingsAssetPref = "Polybrush::Editor.brushSettingsAsset";
 		const string k_BrushSettingsPref = "Polybrush::Editor.brushSettings";
@@ -80,7 +80,7 @@ namespace UnityEditor.Polybrush
         Vector2 m_Scroll = Vector2.zero;
 
         // The current editing mode (RaiseLower, Smooth, Color, etc).
-        internal BrushTool tool = BrushTool.None; 
+        internal BrushTool tool = BrushTool.None;
 
 		// The current brush status
 		internal BrushTarget brushTarget = null;
@@ -140,7 +140,7 @@ namespace UnityEditor.Polybrush
 
             BrushTool tool = s_Instance.tool;
 
-            EditorWindow.GetWindow<PolyEditor>().Close();
+            GetWindow<PolybrushEditor>().Close();
             MenuItems.MenuInitEditorWindow();
 
             s_Instance.SetTool(tool);
@@ -151,7 +151,7 @@ namespace UnityEditor.Polybrush
             if (!PrefUtility.VersionCheck())
                 PrefUtility.ClearPrefs();
 
-			PolyEditor.s_Instance = this;
+			PolybrushEditor.s_Instance = this;
 
             // Editor window setup
             titleContent = new GUIContent("Polybrush");
@@ -164,7 +164,7 @@ namespace UnityEditor.Polybrush
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.SubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
 #endif
-            
+
             m_GCToolmodeIcons = new GUIContent[]
             {
                 EditorGUIUtility.TrIconContent(IconUtility.GetIcon("Toolbar/Sculpt"), "Sculpt on meshes"),
@@ -185,6 +185,7 @@ namespace UnityEditor.Polybrush
 			m_LastHoveredGameObject = null;
 
 			EnsureBrushSettingsListIsValid();
+            PopulateAvailableBrushList();
 
             SetTool(BrushTool.RaiseLower, false);
 
@@ -244,17 +245,26 @@ namespace UnityEditor.Polybrush
 
 		internal static void DoRepaint()
 		{
-			if(PolyEditor.instance != null)
-				PolyEditor.instance.m_WantsRepaint = true;
+			if(PolybrushEditor.instance != null)
+				PolybrushEditor.instance.m_WantsRepaint = true;
 		}
+
+        void PopulateAvailableBrushList()
+        {
+            m_AvailableBrushes = BrushSettingsEditor.GetAvailableBrushes();
+            m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
+            m_CurrentBrushIndex = System.Math.Max(Array.FindIndex<string>(m_AvailableBrushesStrings, x => x == brushSettings.name), 0);
+            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, string.Empty);
+            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, "Add Brush...");
+        }
 
         void OnGUI()
 		{
 			Event e = Event.current;
 			GUILayout.Space(8);
 
+            DoContextMenu();
             DrawToolbar();
-
             CheckForEscapeKey(e);
 
             // Call current mode GUI
@@ -296,8 +306,6 @@ namespace UnityEditor.Polybrush
 				GUILayout.Label("Graphics: " + (dbg_editable.graphicsMesh == null ? "null" : dbg_editable.graphicsMesh.name));
 			}
 #endif
-            if (e.type == EventType.ContextClick)
-                OpenContextMenu();
 
 			if(m_WantsRepaint)
 			{
@@ -391,19 +399,6 @@ namespace UnityEditor.Polybrush
             }
         }
 
-        /// <summary>
-        /// Show the context menu to switch between floating and dockable window
-        /// </summary>
-		void OpenContextMenu()
-		{
-			GenericMenu menu = new GenericMenu();
-
-			menu.AddItem (new GUIContent("Open as Floating Window", ""), s_FloatingWindow, () => { SetWindowFloating(true); } );
-			menu.AddItem (new GUIContent("Open as Dockable Window", ""), !s_FloatingWindow, () => { SetWindowFloating(false); } );
-
-			menu.ShowAsContext ();
-		}
-
         private void CheckForEscapeKey(Event e)
         {
             if (e.type == EventType.KeyDown)
@@ -417,7 +412,6 @@ namespace UnityEditor.Polybrush
         /// <summary>
         /// Delegate called when ProBuilder changes select mode.
         /// </summary>
-        /// <param name="i"></param>
         void OnProBuilderSelectModeChanged(int mode)
 		{
 			// Top = 0,
@@ -428,7 +422,7 @@ namespace UnityEditor.Polybrush
 			if(mode > 0 && tool != BrushTool.None)
 				SetTool(BrushTool.None);
 		}
-        
+
         /// <summary>
         /// Switch Polybrush to the given tool.
         /// </summary>
@@ -511,15 +505,7 @@ namespace UnityEditor.Polybrush
                     SetBrushSettings(brushSettingsAsset != null ? brushSettingsAsset : PolyEditorUtility.GetFirstOrNew<BrushSettings>());
                 }
             }
-
-            m_AvailableBrushes = BrushSettingsEditor.GetAvailableBrushes();
-
-            m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
-            m_CurrentBrushIndex = System.Math.Max(Array.FindIndex<string>(m_AvailableBrushesStrings, x => x == brushSettings.name), 0);
-            
-			ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, string.Empty);
-			ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, "Add Brush...");
-		}
+        }
 
         /// <summary>
         /// Get the default brush settings
@@ -645,7 +631,7 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="target">The brush target</param>
         /// <returns>framerate</returns>
-		double GetTargetFramerate(BrushTarget target)
+		static double GetTargetFramerate(BrushTarget target)
 		{
 			if(Util.IsValid(target) && target.vertexCount > 24000)
 				return k_EditorTargetFrameLow;
@@ -658,7 +644,7 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="go">Gameobject to edit</param>
         /// <returns></returns>
-        BrushTarget GetBrushTarget(GameObject go)
+        BrushTarget GetOrCreateBrushTarget(GameObject go)
 		{
 			BrushTarget target = null;
 
@@ -671,7 +657,6 @@ namespace UnityEditor.Polybrush
 			{
                 m_Hovering[go] = new BrushTarget(EditableObject.Create(go));
 			}
-
 
 			return target;
 		}
@@ -708,7 +693,7 @@ namespace UnityEditor.Polybrush
                 DoMeshRaycast(mouseRay2, brushTarget, mirrorSettings);
                 OnBrushMove();
                 SceneView.RepaintAll();
-                this.Repaint();
+                Repaint();
                 return;
             }
 
@@ -719,7 +704,7 @@ namespace UnityEditor.Polybrush
             if (isDrag && s_LockBrushToFirst && m_LastHoveredGameObject != null)
             {
 				go = m_LastHoveredGameObject;
-				brushTarget = GetBrushTarget(go);
+				brushTarget = GetOrCreateBrushTarget(go);
 			}
             else if (s_IgnoreUnselected || isDrag)
             {
@@ -748,7 +733,7 @@ namespace UnityEditor.Polybrush
 						}
 						else
 						{
-							brushTarget = GetBrushTarget(cur);
+							brushTarget = GetOrCreateBrushTarget(cur);
 
 							if(brushTarget != null)
 								go = cur;
@@ -767,7 +752,7 @@ namespace UnityEditor.Polybrush
                 }
 
                 if ( go != null && PolyEditorUtility.InSelection(go))
-					brushTarget = GetBrushTarget(go);
+					brushTarget = GetOrCreateBrushTarget(go);
 				else
 					go = null;
 			}

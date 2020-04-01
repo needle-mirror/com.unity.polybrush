@@ -229,7 +229,12 @@ namespace UnityEditor.Polybrush
 
             GameObject prefab = prefabAndSettings.gameObject;
 
-			Ray ray = RandomRay(hit.position, hit.normal, settings.radius, settings.falloff, settings.falloffCurve);
+            var worldPosition = target.transform.TransformPoint(hit.position);
+            var worldNormal = target.transform.TransformDirection(hit.normal);
+            Ray ray = RandomRay(worldPosition, worldNormal, settings.radius, settings.falloff, settings.falloffCurve);
+
+            ray.origin = target.transform.InverseTransformPoint(ray.origin);
+            ray.direction = target.transform.InverseTransformDirection(ray.direction);
 
 			PolyRaycastHit rand_hit;
 
@@ -321,8 +326,9 @@ namespace UnityEditor.Polybrush
 			Vector3 a = Vector3.zero;
 			Quaternion rotation = Quaternion.LookRotation(normal, Vector3.up);
 
-			a.x = Mathf.Cos(Random.Range(0f, 360f));
-			a.y = Mathf.Sin(Random.Range(0f, 360f));
+            var rad = Random.Range(0f, 2 * Mathf.PI);
+			a.x = Mathf.Cos(rad);
+			a.y = Mathf.Sin(rad);
 
 			float r = Mathf.Sqrt(Random.Range(0f, 1f));
 

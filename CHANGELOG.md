@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Known Issues
 - Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
 
+## [1.0.2-preview.4] - 2020-04-02
+
+### Bug Fixes
+- [case: 1171437] Fixed `Export to Asset` deleting the source mesh when overwriting an existing asset.
+- [case: 1192477] Fixed prefab scattering placing objects outside the brush radius when parent object transform is scaled.
+- General performance improvements.
+
+## [1.0.2-preview.3] - 2019-11-25
+### Bug fixes
+- Fixed errors thrown when vertex count changed between two strokes.
+- Fixed PolybrushMesh component staying on ProBuilderMesh object once painting is done.
+- Fixed Polybrush re-generating a new mesh when modifying a ProBuilderMesh.
+- Fixed errors thrown when deleting ProBuilderMesh object after modifications with Polybrush.
+- Fixed error `Something went wrong saving brush settings` happening when user deletes brush settings.
+- Fixed color preview not appearing when it should.
+
+
+### Changes
+- Documentation has been fully updated.
+
 ## [1.0.2-preview.1] - 2019-10-28
 ### Bug fixes
 - Fixed errors when unloading scenes in certain cases.

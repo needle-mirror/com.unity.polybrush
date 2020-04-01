@@ -11,55 +11,14 @@ using Polybrush;
 
 namespace UnityEditor.Polybrush
 {
-	[InitializeOnLoad]
-	static class HierarchyChanged
-	{
-		static HierarchyChanged()
-		{
-            EditorApplication.hierarchyChanged += () =>
-            {
-                foreach (var gameObject in Selection.gameObjects)
-                {
-                    var mesh = Util.GetMesh(gameObject);
-                    var id = EditableObject.GetMeshId(mesh);
-
-                    // if the mesh is an instance managed by polybrush check that it's not a duplicate.
-                    if (id != -1)
-                    {
-                        if (id != gameObject.GetInstanceID() && EditorUtility.InstanceIDToObject(id) != null)
-                        {
-                            mesh = PolyMeshUtility.DeepCopy(mesh);
-                            mesh.name = EditableObject.k_MeshInstancePrefix + gameObject.GetInstanceID();
-
-                            var mf = gameObject.GetComponent<MeshFilter>();
-                            var sf = gameObject.GetComponent<SkinnedMeshRenderer>();
-                            var polyMesh = gameObject.GetComponent<PolybrushMesh>();
-
-                            if (polyMesh != null)
-                            {
-                                polyMesh.SetMesh(mesh);
-                                PrefabUtility.RecordPrefabInstancePropertyModifications(polyMesh);
-                            }
-                            else if (mf != null)
-                                mf.sharedMesh = mesh;
-                            else if (sf != null)
-                                sf.sharedMesh = mesh;
-                        }
-                    }
-                }
-            };
-        }
-	}
-
     /// <summary>
     /// Stores a cache of the unmodified mesh and meshrenderer
     /// so that the PolyEditor can work non-destructively.  Also
     /// handles ProBuilder compatibility so that brush modes don't
     /// have to deal with it.
     /// </summary>
-    internal class EditableObject : IEquatable<EditableObject>, IValid
+    class EditableObject : IEquatable<EditableObject>, IValid
 	{
-		const string INSTANCE_MESH_GUID = null;
 		internal const string k_MeshInstancePrefix = "PolybrushMesh";
 
         /// <summary>
@@ -129,7 +88,7 @@ namespace UnityEditor.Polybrush
 
                     if (_skinMeshBaked == null)
                         _skinMeshBaked = new PolyMesh();
-                    
+
                     _skinMeshBaked.InitializeWithUnityMesh(mesh);
 
                     return _skinMeshBaked;
@@ -159,7 +118,7 @@ namespace UnityEditor.Polybrush
 
 		private T GetAttribute<T>(System.Func<Mesh, T> getter) where T : IList
 		{
-			if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream) 
+			if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
 			{
 				int vertexCount = originalMesh.vertexCount;
 				T arr = getter(this.graphicsMesh);
@@ -217,8 +176,8 @@ namespace UnityEditor.Polybrush
 #if PROBUILDER_4_0_OR_NEWER
         // Is the mesh owned by ProBuilder?
         internal bool isProBuilderObject { get; private set; }
-#endif   
-		
+#endif
+
 		// Container for polyMesh. @todo remove when Unity fixes
 		PolybrushMesh m_PolybrushMesh;
 
@@ -251,7 +210,7 @@ namespace UnityEditor.Polybrush
 #if PROBUILDER_4_0_OR_NEWER
                 if (isProBuilderObject)
                 {
-                    if (ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached) 
+                    if (ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached)
                         && _editMesh != null
                         && _editMesh.vertexCount != ProBuilderBridge.GetVertexCount(gameObjectAttached))
                     {
@@ -342,7 +301,6 @@ namespace UnityEditor.Polybrush
                 }
             }
 #endif
-
             if (meshRenderer != null || _skinMeshRenderer != null)
             {
                 mesh = m_PolybrushMesh.storedMesh;
@@ -403,8 +361,8 @@ namespace UnityEditor.Polybrush
         {
             if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
             {
-                if (PolyEditor.instance.tool == BrushTool.RaiseLower ||
-                    PolyEditor.instance.tool == BrushTool.Smooth)
+                if (PolybrushEditor.instance.tool == BrushTool.RaiseLower ||
+                    PolybrushEditor.instance.tool == BrushTool.Smooth)
                 {
                     if (s_RebuildNormals.value && (modifiedChannels & MeshChannel.Position) > 0)
                         PolyMeshUtility.RecalculateNormals(editMesh);
@@ -431,7 +389,7 @@ namespace UnityEditor.Polybrush
 #if PROBUILDER_4_0_OR_NEWER
             // if it's a probuilder object rebuild the mesh without optimization
             if (isProBuilderObject)
-            {              
+            {
                 ProBuilderBridge.SetPositions(gameObjectAttached, editMesh.vertices);
                 ProBuilderBridge.SetTangents(gameObjectAttached, editMesh.tangents);
 
@@ -460,8 +418,8 @@ namespace UnityEditor.Polybrush
                 return;
             }
 
-            if (PolyEditor.instance.tool == BrushTool.RaiseLower ||
-                PolyEditor.instance.tool == BrushTool.Smooth)
+            if (PolybrushEditor.instance.tool == BrushTool.RaiseLower ||
+                PolybrushEditor.instance.tool == BrushTool.Smooth)
             {
                 if (s_RebuildNormals.value)// && (modifiedChannels & MeshChannel.Position) > 0)
                     PolyMeshUtility.RecalculateNormals(editMesh);
@@ -479,7 +437,7 @@ namespace UnityEditor.Polybrush
                 Undo.RecordObject(m_PolybrushMesh.componentsCache.MeshFilter, "Assign Polymesh to MeshFilter");
 
             m_PolybrushMesh.SynchronizeWithMeshRenderer();
-            
+
             modifiedChannels = MeshChannel.Null;
         }
         /// <summary>
@@ -592,7 +550,12 @@ namespace UnityEditor.Polybrush
 
 		static bool MeshInstanceMatchesGameObject(Mesh mesh, GameObject go)
 		{
-			int gameObjectId = go.GetInstanceID();
+#if PROBUILDER_4_0_OR_NEWER
+            if (ProBuilderBridge.IsValidProBuilderMesh(go))
+                return true;
+#endif
+
+            int gameObjectId = go.GetInstanceID();
 			int meshId = GetMeshId(mesh);
 
 			// If the mesh id doesn't parse to an ID it's definitely not an instance
@@ -619,12 +582,17 @@ namespace UnityEditor.Polybrush
 
         internal void RemovePolybrushComponentsIfNecessary()
         {
+            if (isProBuilderObject)
+            {
+                GameObject.DestroyImmediate(m_PolybrushMesh);
+                return;
+            }
+
             // Check if there's any modification on the PolybrushMesh component.
             // If there is none, remove it from the GameObject.
-            if (!m_PolybrushMesh.hasAppliedChanges || isProBuilderObject)
+            if (!m_PolybrushMesh.hasAppliedChanges)
             {
                 polybrushMesh.SetMesh(originalMesh);
-                //GameObject.DestroyImmediate(m_PolybrushMesh);
             }
         }
 

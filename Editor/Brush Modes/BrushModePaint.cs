@@ -320,17 +320,18 @@ namespace UnityEditor.Polybrush
 
 					break;
 
-				default:
-				{
-					for(int i = 0; i < vertexCount; i++)
-					{
-                            m_MeshVertexColors.Colors[i] = Util.Lerp(m_MeshVertexColors.OriginalColors[i],
-												invert ? m_MeshVertexColors.EraseColors[i] : m_MeshVertexColors.TargetColors[i],
-												mask,
-												weights[i]);
-					}
-					break;
-				}
+                default:
+                {
+                    for (int i = 0; i < vertexCount; i++)
+                    {
+                        m_MeshVertexColors.Colors[i] = Util.Lerp(m_MeshVertexColors.OriginalColors[i],
+                            invert ? m_MeshVertexColors.EraseColors[i] : m_MeshVertexColors.TargetColors[i],
+                            mask,
+                            weights[i]);
+                    }
+
+                    break;
+                }
 			}
 
 			target.editableObject.editMesh.colors = m_MeshVertexColors.Colors;

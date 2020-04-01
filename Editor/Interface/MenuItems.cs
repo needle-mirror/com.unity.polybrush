@@ -1,22 +1,20 @@
 ﻿using Polybrush;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.Polybrush;
 using UnityEngine.SceneManagement;
 
 namespace UnityEditor.Polybrush
 {
     static class MenuItems
     {
-        static PolyEditor editor
+        static PolybrushEditor editor
         {
-            get { return PolyEditor.instance; }
+            get { return PolybrushEditor.instance; }
         }
 
         [MenuItem("Tools/" + PrefUtility.productName + "/Polybrush Window %#v", false, PrefUtility.menuEditor)]
         public static void MenuInitEditorWindow()
         {
-            EditorWindow.GetWindow<PolyEditor>(PolyEditor.s_FloatingWindow).Show();
+            EditorWindow.GetWindow<PolybrushEditor>(PolybrushEditor.s_FloatingWindow).Show();
         }
 
         [MenuItem("Tools/" + PrefUtility.productName + "/Bake Vertex Streams", false, PrefUtility.menuBakeVertexStreams)]

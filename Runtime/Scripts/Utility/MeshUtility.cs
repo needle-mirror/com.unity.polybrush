@@ -23,9 +23,9 @@ namespace UnityEngine.Polybrush
                 return null;
             }
 
-            Mesh dest = new Mesh();
-			Copy(dest, src);
-			return dest;
+            Mesh dst = new Mesh();
+			Copy(src, dst);
+			return dst;
 		}
 
         /// <summary>
@@ -33,37 +33,37 @@ namespace UnityEngine.Polybrush
         /// </summary>
         /// <param name="dest">destination</param>
         /// <param name="src">source</param>
-        internal static void Copy(Mesh dest, Mesh src)
+        internal static void Copy(Mesh src, Mesh dst)
 		{
             //null checks
-            if(dest == null || src == null)
+            if(dst == null || src == null)
             {
                 return;
             }
 
-			dest.Clear();
-			dest.vertices = src.vertices;
+			dst.Clear();
+			dst.vertices = src.vertices;
 
 			List<Vector4> uvs = new List<Vector4>();
 
-			src.GetUVs(0, uvs); dest.SetUVs(0, uvs);
-			src.GetUVs(1, uvs); dest.SetUVs(1, uvs);
-			src.GetUVs(2, uvs); dest.SetUVs(2, uvs);
-			src.GetUVs(3, uvs); dest.SetUVs(3, uvs);
+			src.GetUVs(0, uvs); dst.SetUVs(0, uvs);
+			src.GetUVs(1, uvs); dst.SetUVs(1, uvs);
+			src.GetUVs(2, uvs); dst.SetUVs(2, uvs);
+			src.GetUVs(3, uvs); dst.SetUVs(3, uvs);
 
-			dest.normals = src.normals;
-			dest.tangents = src.tangents;
-			dest.boneWeights = src.boneWeights;
-			dest.colors = src.colors;
-			dest.colors32 = src.colors32;
-			dest.bindposes = src.bindposes;
+			dst.normals = src.normals;
+			dst.tangents = src.tangents;
+			dst.boneWeights = src.boneWeights;
+			dst.colors = src.colors;
+			dst.colors32 = src.colors32;
+			dst.bindposes = src.bindposes;
 
-			dest.subMeshCount = src.subMeshCount;
+			dst.subMeshCount = src.subMeshCount;
 
 			for(int i = 0; i < src.subMeshCount; i++)
-				dest.SetIndices(src.GetIndices(i), src.GetTopology(i), i);
+				dst.SetIndices(src.GetIndices(i), src.GetTopology(i), i);
 
-			dest.name = Util.IncrementPrefix("z", src.name);
+			dst.name = Util.IncrementPrefix("z", src.name);
 		}
 
         /// <summary>
@@ -245,10 +245,43 @@ namespace UnityEngine.Polybrush
 			return normals;
 		}
 
+        struct CommonVertexCache
+        {
+            int m_Hash;
+            public int[][] indices;
+
+            public CommonVertexCache(Mesh mesh)
+            {
+                m_Hash = GetHash(mesh);
+                Vector3[] v = mesh.vertices;
+                // this is _really_ slow
+                int[] t = Util.Fill<int>((x) => { return x; }, v.Length);
+                indices = t.ToLookup(x => (RndVec3)v[x])
+                    .Select(y => y.ToArray())
+                    .ToArray();
+            }
+
+            public bool IsValidForMesh(Mesh mesh)
+            {
+                return m_Hash == GetHash(mesh);
+            }
+
+            static int GetHash(Mesh mesh)
+            {
+                unchecked
+                {
+                    int hash = 27 * 29 + mesh.vertexCount;
+                    for(int i = 0, c = mesh.subMeshCount; i < c; i++)
+                        hash = hash * 29 + (int) mesh.GetIndexCount(i);
+                    return hash;
+                }
+            }
+        }
+
 		/// <summary>
 		/// Store a temporary cache of common vertex indices.
 		/// </summary>
-		internal static Dictionary<PolyMesh, int[][]> commonVerticesCache = new Dictionary<PolyMesh, int[][]>();
+		static Dictionary<PolyMesh, CommonVertexCache> commonVerticesCache = new Dictionary<PolyMesh, CommonVertexCache>();
 
         /// <summary>
         /// Builds a list<group> with each vertex index and a list of all other vertices sharing a position.
@@ -261,42 +294,22 @@ namespace UnityEngine.Polybrush
 		{
             //null checks
             if (mesh == null)
-            {
                 return null;
-            }
 
-            int[][] indices;
+            CommonVertexCache cache;
 
-			if( commonVerticesCache.TryGetValue(mesh, out indices) )
+			if(commonVerticesCache.TryGetValue(mesh, out cache))
 			{
-				// int min = mesh.vertexCount, max = 0;
-
-				// for(int x = 0; x < indices.Count; x++)
-				// {
-				// 	for(int y = 0; y < indices[x].Count; y++)
-				// 	{
-				// 		int index = indices[x][y];
-				// 		if(index < min) min = index;
-				// 		if(index > max) max = index;
-				// 	}
-				// }
-
-				// if(max - min + 1 == mesh.vertexCount)
-					return indices;
+                if (cache.IsValidForMesh(mesh.mesh))
+                    return cache.indices;
             }
-
-			Vector3[] v = mesh.vertices;
-			int[] t = Util.Fill<int>((x) => { return x; }, v.Length);
-			indices = t.ToLookup(x => (RndVec3)v[x])
-                .Select(y => y.ToArray())
-                .ToArray();
 
 			if(!commonVerticesCache.ContainsKey(mesh))
-				commonVerticesCache.Add(mesh, indices);
+				commonVerticesCache.Add(mesh, cache = new CommonVertexCache(mesh.mesh));
 			else
-				commonVerticesCache[mesh] = indices;
+				commonVerticesCache[mesh] = cache = new CommonVertexCache(mesh.mesh);
 
-			return indices;
+			return cache.indices;
 		}
 
 		internal static List<CommonEdge> GetEdges(PolyMesh m)
@@ -440,8 +453,11 @@ namespace UnityEngine.Polybrush
 			Dictionary<PolyEdge, List<int>> lookup = null;
 
 			// @todo - should add some checks to make sure triangle structure hasn't changed
-			if(adjacentTrianglesCache.TryGetValue(mesh, out lookup))
+			if(adjacentTrianglesCache.TryGetValue(mesh, out lookup) && lookup.Count == mesh.vertexCount)
 				return lookup;
+
+            if (adjacentTrianglesCache.ContainsKey(mesh))
+                adjacentTrianglesCache.Remove(mesh);
 
 			int subMeshCount = mesh.subMeshCount;
 

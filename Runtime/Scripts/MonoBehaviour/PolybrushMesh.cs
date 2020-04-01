@@ -9,7 +9,7 @@ namespace UnityEngine.Polybrush
     /// It will also handle the advs switch mode (on/off)
     /// </summary>
     [ExecuteInEditMode]
-    internal class PolybrushMesh : MonoBehaviour
+    class PolybrushMesh : MonoBehaviour
     {
         internal enum Mode
         {
@@ -34,9 +34,9 @@ namespace UnityEngine.Polybrush
         /// </summary>
         internal struct MeshComponentsCache
         {
-            GameObject          m_Owner;
-            MeshFilter          m_MeshFilter;
-            MeshRenderer        m_MeshRenderer;
+            GameObject m_Owner;
+            MeshFilter m_MeshFilter;
+            MeshRenderer m_MeshRenderer;
             SkinnedMeshRenderer m_SkinMeshRenderer;
 
             internal bool IsValid()
@@ -46,26 +46,17 @@ namespace UnityEngine.Polybrush
 
             internal MeshFilter MeshFilter
             {
-                get
-                {
-                    return m_MeshFilter;
-                }
+                get { return m_MeshFilter; }
             }
 
             internal MeshRenderer MeshRenderer
             {
-                get
-                {
-                    return m_MeshRenderer;
-                }
+                get { return m_MeshRenderer; }
             }
 
             internal SkinnedMeshRenderer SkinnedMeshRenderer
             {
-                get
-                {
-                    return m_SkinMeshRenderer;
-                }
+                get { return m_SkinMeshRenderer; }
             }
 
             internal MeshComponentsCache(GameObject root)
@@ -169,7 +160,7 @@ namespace UnityEngine.Polybrush
             get { return m_Mode; }
             set { UpdateMode(value); }
         }
-        
+
         internal Mesh skinMeshRef
         {
             get

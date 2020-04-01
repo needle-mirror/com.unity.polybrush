@@ -9,6 +9,8 @@ namespace UnityEditor.Polybrush
     /// Handle mesh preview. Use it to load a static preview from a native Unity Mesh,
     /// PolybrushMesh or ProBuilderMesh.
     /// </summary>
+    /// <seealso cref="PolybrushMeshEditor"/>
+    /// <seealso href="../manual/index.html">Launch page</seealso>
     public class MeshPreview
     {
         /// <summary>

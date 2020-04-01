@@ -197,7 +197,7 @@ namespace UnityEditor.Polybrush
             {
                 if (m_PolybrushOnSelectModeListenerMethodInfo == null)
                 {
-                    m_PolybrushOnSelectModeListenerMethodInfo = typeof(PolyEditor).GetMethod("OnProBuilderSelectModeChanged",
+                    m_PolybrushOnSelectModeListenerMethodInfo = typeof(PolybrushEditor).GetMethod("OnProBuilderSelectModeChanged",
                         BindingFlags.NonPublic | BindingFlags.Instance);
                 }
 
@@ -589,7 +589,7 @@ namespace UnityEditor.Polybrush
             }
 
             Type tDelegate = ProBuilderOnSelectModeChanged.EventHandlerType;
-            Delegate d = Delegate.CreateDelegate(tDelegate, PolyEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
+            Delegate d = Delegate.CreateDelegate(tDelegate, PolybrushEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
             
             MethodInfo addMethod = ProBuilderOnSelectModeChanged.GetAddMethod();
             addMethod.Invoke(null, new object[] { d });
@@ -609,7 +609,7 @@ namespace UnityEditor.Polybrush
             }
             
             Type tDelegate = ProBuilderOnSelectModeChanged.EventHandlerType;
-            Delegate d = Delegate.CreateDelegate(tDelegate, PolyEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
+            Delegate d = Delegate.CreateDelegate(tDelegate, PolybrushEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
             
             MethodInfo removeMethod = ProBuilderOnSelectModeChanged.GetRemoveMethod();
             removeMethod.Invoke(null, new object[] { d });

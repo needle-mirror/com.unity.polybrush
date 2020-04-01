@@ -11,9 +11,11 @@ namespace UnityEditor.Polybrush
 {
 	internal static class PolySceneUtility
 	{
+#pragma warning disable 618
         [UserSetting]
         internal static Pref<int> s_GIWorkflowMode = new Pref<int>("GI.WorkflowMode", (int)Lightmapping.giWorkflowMode, SettingsScope.Project);
-
+#pragma warning restore 618
+        
 		internal static Ray InverseTransformRay(this Transform transform, Ray InWorldRay)
 		{
 			Vector3 o = InWorldRay.origin;
@@ -261,11 +263,13 @@ namespace UnityEditor.Polybrush
         /// </summary>
         internal static void PushGIWorkflowMode()
 		{
+#pragma warning disable 618
             s_GIWorkflowMode.value = (int)Lightmapping.giWorkflowMode;
             PolybrushSettings.Save();
 
             if (Lightmapping.giWorkflowMode != Lightmapping.GIWorkflowMode.Legacy)
 				Lightmapping.giWorkflowMode = Lightmapping.GIWorkflowMode.OnDemand;
+#pragma warning restore 618
 		}
 
         /// <summary>
@@ -273,7 +277,9 @@ namespace UnityEditor.Polybrush
         /// </summary>
         internal static void PopGIWorkflowMode()
 		{
+#pragma warning disable 618
             Lightmapping.giWorkflowMode = (Lightmapping.GIWorkflowMode)s_GIWorkflowMode.value;
+#pragma warning restore 618
 		}
 	}
 }

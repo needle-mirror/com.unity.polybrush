@@ -11,7 +11,7 @@ namespace UnityEditor.Polybrush
 	{
 		void OnEnable()
 		{
-			if(PolyEditor.instance == null)
+			if(PolybrushEditor.instance == null)
 				GameObject.DestroyImmediate(this.target);
 		}
 

@@ -41,6 +41,8 @@ namespace UnityEngine.Polybrush
         [SerializeField]
         Mesh m_Mesh = null;
 
+        internal Mesh mesh => m_Mesh;
+
         internal int vertexCount { get { return vertices != null ? vertices.Length : 0; } }
 
         internal SubMesh[] subMeshes

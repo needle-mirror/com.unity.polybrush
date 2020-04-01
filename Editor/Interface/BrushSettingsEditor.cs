@@ -23,6 +23,8 @@ namespace UnityEditor.Polybrush
 
 		private static readonly Rect RECT_ONE = new Rect(0,0,1,1);
 
+        private const float k_BrushSizeMaxValue = 10000f;
+
 		SerializedProperty 	radius,
 							falloff,
 							strength,
@@ -69,11 +71,11 @@ namespace UnityEditor.Polybrush
                     using (new GUILayout.VerticalScope())
                     {
                         brushRadiusMin.floatValue = PolyGUILayout.FloatField(m_GCRadiusMin, brushRadiusMin.floatValue);
-                        brushRadiusMin.floatValue = Mathf.Clamp(brushRadiusMin.floatValue, .0001f, Mathf.Infinity);
+                        brushRadiusMin.floatValue = Mathf.Clamp(brushRadiusMin.floatValue, .0001f, k_BrushSizeMaxValue);
 
                         brushRadiusMax.floatValue = PolyGUILayout.FloatField(m_GCRadiusMax, brushRadiusMax.floatValue);
-                        brushRadiusMax.floatValue = Mathf.Clamp(brushRadiusMax.floatValue, brushRadiusMin.floatValue + .001f, Mathf.Infinity);
-
+                        brushRadiusMax.floatValue = Mathf.Clamp(brushRadiusMax.floatValue, brushRadiusMin.floatValue + .001f, k_BrushSizeMaxValue);
+                        
                         allowNonNormalizedFalloff.boolValue = PolyGUILayout.Toggle(m_GCAllowUnclampedFalloff, allowNonNormalizedFalloff.boolValue);
                     }
                 }

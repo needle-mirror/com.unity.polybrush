@@ -108,68 +108,45 @@ namespace UnityEditor.Polybrush
 			string save_path = !string.IsNullOrEmpty(overridenPath) ? overridenPath : DO_NOT_SAVE;
 
 			ModelSource source = GetMeshGUID(mesh);
-            
-			switch( source )
-			{
-				case ModelSource.Asset:
 
-					int saveChanges = overridenDialogResult != -1 ? overridenDialogResult : 
-                        EditorUtility.DisplayDialogComplex(
-						    "Save Changes",
-						    "Save changes to edited mesh?",
-						    "Save",				// DIALOG_OK
-						    "Cancel",			// DIALOG_CANCEL
-						    "Save As");			// DIALOG_ALT
+            switch (source)
+            {
+                case ModelSource.Asset:
 
-					if( saveChanges == DIALOG_OK )
-                    {
+                    int saveChanges = overridenDialogResult != -1
+                        ? overridenDialogResult
+                        : EditorUtility.DisplayDialogComplex(
+                            "Save Changes",
+                            "Save changes to edited mesh?",
+                            "Save", // DIALOG_OK
+                            "Cancel", // DIALOG_CANCEL
+                            "Save As"); // DIALOG_ALT
+
+                    if(saveChanges == DIALOG_OK)
                         save_path = AssetDatabase.GetAssetPath(mesh);
-                    }
-                    else if( saveChanges == DIALOG_ALT )
-                    {
+                    else if(saveChanges == DIALOG_ALT)
                         save_path = EditorUtility.SaveFilePanelInProject("Save Mesh As", mesh.name + ".asset", "asset", "Save edited mesh to");
-                    }
                     else
-                    {
                         return false;
-                    }
 
                     break;
 
-				case ModelSource.Imported:
-				case ModelSource.Scene:
-				default:
+                case ModelSource.Imported:
+                case ModelSource.Scene:
+                default:
                     save_path = EditorUtility.SaveFilePanelInProject("Save Mesh As", mesh.name + ".asset", "asset", "Save edited mesh to");
                     break;
-			}
+            }
 
-			if( !save_path.Equals(DO_NOT_SAVE) && !string.IsNullOrEmpty(save_path) )
-			{
-				Object existing = AssetDatabase.LoadMainAssetAtPath(save_path);
-
-				if( existing != null && existing is Mesh )
-				{
-                    //if the mesh that we want to create is the same than the mesh found at this path, do nothing
-                    if (existing.GetInstanceID() == mesh.GetInstanceID())
-                    {
-                        //nothing to do here
-                    }
-                    // save over an existing mesh asset
-                    else
-                    {
-                        PolyMeshUtility.Copy((Mesh)existing, mesh);
-                        Object.DestroyImmediate(mesh, true);
-                    }
-				}
-				else
-				{
-                    Mesh newMesh = new Mesh();
-                    PolyMeshUtility.Copy(newMesh, mesh);
-                    AssetDatabase.CreateAsset(newMesh, save_path);
-				}
-
+            if(!save_path.Equals(DO_NOT_SAVE) && !string.IsNullOrEmpty(save_path))
+            {
+                Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(save_path);
+                bool overwrite = existing != null;
+                Mesh dst = overwrite ? existing : new Mesh();
+                PolyMeshUtility.Copy(mesh, dst);
+                if(!overwrite)
+                    AssetDatabase.CreateAsset(dst, save_path);
 				AssetDatabase.Refresh();
-
 				return true;
 			}
 

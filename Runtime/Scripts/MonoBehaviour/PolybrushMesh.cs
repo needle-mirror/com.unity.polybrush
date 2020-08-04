@@ -218,7 +218,7 @@ namespace UnityEngine.Polybrush
 
             if (!polyMesh.IsValid() && mesh)
                 SetMesh(mesh);
-            else if (polyMesh.IsValid())
+            else if (polyMesh.IsValid() && (mesh == null || mesh.vertexCount != polyMesh.vertexCount))
                 SetMesh(polyMesh.ToUnityMesh());
 
             m_Initialized = true;
@@ -230,6 +230,9 @@ namespace UnityEngine.Polybrush
         /// <param name="unityMesh">Unity mesh.</param>
         internal void SetMesh(Mesh unityMesh)
         {
+            if (unityMesh == null)
+                return;
+
             m_PolyMesh.InitializeWithUnityMesh(unityMesh);
             SynchronizeWithMeshRenderer();
         }
@@ -378,7 +381,7 @@ namespace UnityEngine.Polybrush
             {
                 // Re-assign source mesh only if it has changed.
                 // Likely to happen with ProBuilder.
-                if (type == ObjectType.Mesh && sourceMesh == componentsCache.MeshFilter.sharedMesh)
+                if (type == ObjectType.Mesh && componentsCache.MeshFilter !=null && sourceMesh == componentsCache.MeshFilter.sharedMesh)
                     return;
 
                 SetMesh(sourceMesh);

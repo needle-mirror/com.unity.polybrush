@@ -377,6 +377,8 @@ namespace UnityEditor.Polybrush
                                 SetBrushSettings(dup);
                                 EditorGUIUtility.PingObject(brushSettingsAsset);
                             }
+
+                            GUIUtility.ExitGUI();
                         }
                         else
                         {

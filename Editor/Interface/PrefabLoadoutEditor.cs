@@ -104,7 +104,7 @@ namespace UnityEditor.Polybrush
 
             int count = m_CurrentLoadouts.Count;
 
-            EditorGUILayout.LabelField(Styles.brushLoadoutLabel);
+            PolyGUILayout.Label(Styles.brushLoadoutLabel);
 
             Rect backGroundRect = EditorGUILayout.BeginVertical(PrefabPaletteEditor.paletteStyle);
             backGroundRect.width = EditorGUIUtility.currentViewWidth;
@@ -119,7 +119,7 @@ namespace UnityEditor.Polybrush
                 EditorGUILayout.EndVertical();
                 return;
             }
-            
+
             const int pad = 4;
             int size = thumbSize + pad;
             backGroundRect.x += 8;

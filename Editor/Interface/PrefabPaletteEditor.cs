@@ -73,7 +73,7 @@ namespace UnityEditor.Polybrush
         /// <param name="thumbSize">size of the preview textures</param>
         internal void OnInspectorGUI_Internal(int thumbSize)
         {
-            EditorGUILayout.LabelField(m_GCCurrentPaletteLabel);
+            PolyGUILayout.Label(m_GCCurrentPaletteLabel);
 
             serializedObject.Update();
             int count = prefabs != null ? prefabs.arraySize : 0;

@@ -5,34 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-### Known Issues
-- Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
-
-## [1.0.2-preview.4] - 2020-04-02
+## [1.0.2] - 2020-08-04
 
 ### Bug Fixes
+
+- [case: 1259746] Fixed error when opening and closing display dialog to save brush.
+- [case: 1259770] Fixed on hovering above Settings tooltips always appear on centre of window.
+- [case: 1241241] Fixed null ref on adding or deleting `PolybrushMesh` component to Gameobjects without a `MeshFilter`.
+- [case: 1246495] Fixed `PolybrushMesh` component always marking the scene dirty when enabled.
+- [case: 1241241] Fixed null ref on Adding/Deleting "PolybrushMesh" Component to Gameobjects without a Mesh Filter
 - [case: 1171437] Fixed `Export to Asset` deleting the source mesh when overwriting an existing asset.
 - [case: 1192477] Fixed prefab scattering placing objects outside the brush radius when parent object transform is scaled.
-- General performance improvements.
-
-## [1.0.2-preview.3] - 2019-11-25
-### Bug fixes
 - Fixed errors thrown when vertex count changed between two strokes.
 - Fixed PolybrushMesh component staying on ProBuilderMesh object once painting is done.
 - Fixed Polybrush re-generating a new mesh when modifying a ProBuilderMesh.
 - Fixed errors thrown when deleting ProBuilderMesh object after modifications with Polybrush.
 - Fixed error `Something went wrong saving brush settings` happening when user deletes brush settings.
 - Fixed color preview not appearing when it should.
-
-
-### Changes
-- Documentation has been fully updated.
-
-## [1.0.2-preview.1] - 2019-10-28
-### Bug fixes
 - Fixed errors when unloading scenes in certain cases.
+- General performance improvements.
+
+### Known Issues
+
+- Lightmapping is currently not compatible with use of "Additional Vertex Streams". Workaround is to disable "Use Additional Vertex Streams" in preferences.
 
 ### Changes
+
+- Update to Settings Manager 1.0.3.
+- Documentation has been fully updated.
 - Renamed LWRP to Universal Rendering Pipeline.
 
 ## [1.0.1] - 2019-09-05

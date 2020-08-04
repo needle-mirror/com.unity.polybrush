@@ -7,7 +7,7 @@ namespace UnityEngine.Polybrush
 
     /// <summary>
     /// Caches the attributes of UnityEngine.Mesh class that Polybrush can edit.
-    /// 
+    ///
     /// Necessary because accessing attributes on UnityEngine.Mesh always invokes
     /// an expensive C# <-> C++ trip, plus it copies data, which 99% of the time
     /// we don't need.
@@ -60,7 +60,7 @@ namespace UnityEngine.Polybrush
 				return m_SubMeshes.Length;
 			}
 		}
-        
+
         internal PolyMesh()
         {
             uv0 = new List<Vector4>();
@@ -155,7 +155,7 @@ namespace UnityEngine.Polybrush
         /// </summary>
         void RefreshTriangles()
         {
-            m_Triangles = m_SubMeshes.SelectMany(x => x.indexes).ToArray();
+            m_Triangles = m_SubMeshes == null? null:m_SubMeshes.SelectMany(x => x.indexes).ToArray();
         }
 
         static Vector3[] s_PerTriangleNormalsBuffer = new Vector3[4096];
@@ -170,7 +170,7 @@ namespace UnityEngine.Polybrush
             {
                 Array.Resize<Vector3>(ref s_PerTriangleNormalsBuffer, vertexCount);
                 Array.Resize<int>(ref s_PerTriangleAvgBuffer, vertexCount);
-            }                
+            }
 
             for (int i = 0; i < vertexCount; ++i)
             {
@@ -181,7 +181,6 @@ namespace UnityEngine.Polybrush
             }
 
             int[] tris = GetTriangles();
-            
             for (int i = 0; i < tris.Length; i += 3)
             {
                 int a = tris[i], b = tris[i + 1], c = tris[i + 2];
@@ -237,7 +236,7 @@ namespace UnityEngine.Polybrush
 				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV3), uv2);
 				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV4), uv3);
 
-                mesh.subMeshCount = m_SubMeshes.Length;
+                mesh.subMeshCount = subMeshCount;
 
                 for(int i = 0; i < subMeshCount; ++i)
                     mesh.SetIndices(m_SubMeshes[i].indexes, m_SubMeshes[i].topology, i);

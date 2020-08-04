@@ -302,7 +302,13 @@ namespace UnityEditor.Polybrush
 			return clicked;
 		}
 
-		internal static bool Foldout(bool state, GUIContent content)
+
+        internal static void Label(GUIContent gc)
+        {
+            EditorGUILayout.LabelField(gc,GUILayout.Width(140));
+        }
+
+        internal static bool Foldout(bool state, GUIContent content)
 		{
             return EditorGUILayout.Foldout(state, content, true);
 		}
@@ -320,7 +326,8 @@ namespace UnityEditor.Polybrush
 		{
             using (new GUILayout.HorizontalScope())
             {
-                EditorGUILayout.LabelField(gc);
+                EditorGUILayout.LabelField(gc,GUILayout.Width(140));
+                GUILayout.FlexibleSpace();
                 isToggled = EditorGUILayout.Toggle(isToggled, GUILayout.Width(15*(EditorGUI.indentLevel+1)));
             }
 
@@ -381,7 +388,7 @@ namespace UnityEditor.Polybrush
 		}
 
 		internal static bool HeaderWithDocsLink(GUIContent gc)
-		{          
+		{
             using (new GUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField(gc, EditorStyles.boldLabel);

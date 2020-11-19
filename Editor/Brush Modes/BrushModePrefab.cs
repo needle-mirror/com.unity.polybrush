@@ -11,6 +11,11 @@ namespace UnityEditor.Polybrush
     /// </summary>
     internal class BrushModePrefab : BrushMode
     {
+        class EditableObjectData
+        {
+            public double LastBrushApplication;
+        }
+
         const string k_PrefabLoadouts = "Polybrush::Editor.PrefabLoadout";
         internal readonly static float k_PrefabOccurrenceMin = 1;
         internal readonly static float k_PrefabOccurrenceMax = 100;
@@ -42,7 +47,14 @@ namespace UnityEditor.Polybrush
         [UserSetting]
         static Pref<int> s_PreviewThumbSize = new Pref<int>("ScatteringEditor.PreviewThumSize", 64, SettingsScope.Project);
 
-        double m_LastBrushApplication = 0.0;
+        /// <summary>
+        /// Value used in 2D mode to offset painted prefabs from the painting surface.
+        /// Allows to easily paint on different layers in 2D to facilitate depth sorting.
+        /// </summary>
+        [UserSetting]
+        static Pref<float> s_2DDepthOffset = new Pref<float>("2D.DepthOffset", 0.0f, SettingsScope.Project);
+
+        Dictionary<EditableObject, EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
 		PrefabPalette[] m_AvailablePalettes = null;
 		string[] m_AvailablePalettesAsStrings = null;
@@ -53,14 +65,8 @@ namespace UnityEditor.Polybrush
 
         internal PrefabPalette prefabPalette
 		{
-			get
-			{
-				return m_PrefabPalette;
-			}
-			set
-			{
-				m_PrefabPalette = value;
-			}
+			get { return m_PrefabPalette; }
+			set { m_PrefabPalette = value; }
 		}
 
 		// An Editor for the prefabLoadouts, managing multiple editors for PrefabPalettes.
@@ -72,14 +78,13 @@ namespace UnityEditor.Polybrush
 
 		GUIContent m_GCUsePrefabPivot = new GUIContent("Use Pivot", "By default Polybrush will position placed objects entirely on top of the target plane.  When 'Use Pivot' is enabled objects will instead be placed by their assigned mesh origin.");
 		GUIContent m_GCHitSurfaceIsParent = new GUIContent("Hit Surface is Parent", "When enabled any instantiated prefab from this mode will be automatically made a child of the surface it was placed on.");
-		GUIContent m_GcAvoidOverlappingGameObjects = new GUIContent("Avoid Overlap", "If enabled Polybrush will attempt to avoid placing prefabs where they may overlap with another placed GameObject.");
+		GUIContent m_GCAvoidOverlappingGameObjects = new GUIContent("Avoid Overlap", "If enabled Polybrush will attempt to avoid placing prefabs where they may overlap with another placed GameObject.");
+        GUIContent m_GC2DPaintingDepth = new GUIContent("2D Depth Offset", "Define the distance to paint from the surface, use it to paint in different 2D layers and facilitate Z-sorting.");
 
 		static string FormatInstanceName(GameObject go)
 		{
 			return string.Format("{0}(Polybrush Clone)", go.name);
 		}
-
-
 
         internal override void OnEnable()
 		{
@@ -87,9 +92,8 @@ namespace UnityEditor.Polybrush
 
 			RefreshAvailablePalettes();
             if (prefabPalette == null)
-            {
                 prefabPalette = m_AvailablePalettes[0];
-            }
+
             prefabLoadoutEditor = new PrefabLoadoutEditor(m_AvailablePalettes.ToList(), m_PrefabPalette);
         }
 
@@ -107,7 +111,7 @@ namespace UnityEditor.Polybrush
         internal override void DrawGUI(BrushSettings brushSettings)
 		{
 			base.DrawGUI(brushSettings);
-            
+
             /// Verify dependencies
             VerifyLoadedAssetsIntegrity();
 
@@ -117,7 +121,10 @@ namespace UnityEditor.Polybrush
             s_UsePivotForPlacement.value = PolyGUILayout.Toggle(m_GCUsePrefabPivot, s_UsePivotForPlacement);
 
 			s_ParentObjectWithSurface.value = PolyGUILayout.Toggle(m_GCHitSurfaceIsParent, s_ParentObjectWithSurface);
-			s_AvoidOverlappingGameObjects.value = PolyGUILayout.Toggle(m_GcAvoidOverlappingGameObjects, s_AvoidOverlappingGameObjects);
+			s_AvoidOverlappingGameObjects.value = PolyGUILayout.Toggle(m_GCAvoidOverlappingGameObjects, s_AvoidOverlappingGameObjects);
+
+            if(SceneView.lastActiveSceneView.in2DMode)
+                s_2DDepthOffset.value = PolyGUILayout.FloatField(m_GC2DPaintingDepth, s_2DDepthOffset);
 
 			EditorGUI.BeginChangeCheck();
             m_CurrentPaletteIndex = EditorGUILayout.Popup(m_CurrentPaletteIndex, m_AvailablePalettesAsStrings);
@@ -132,7 +139,6 @@ namespace UnityEditor.Polybrush
             using (new GUILayout.HorizontalScope())
             {
                 s_PreviewThumbSize.value = (int)EditorGUILayout.Slider("Preview Size", (float)s_PreviewThumbSize, 60f, 128f);
-
             }
 
             if (EditorGUI.EndChangeCheck())
@@ -164,28 +170,29 @@ namespace UnityEditor.Polybrush
             return true;
         }
 
-		internal override void OnBrushSettingsChanged(BrushTarget target, BrushSettings settings)
-		{
-			base.OnBrushSettingsChanged(target, settings);
-		}
-
 		// Called when the mouse begins hovering an editable object.
 		internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
 		{
 			base.OnBrushEnter(target, settings);
-		}
 
-		// Called whenever the brush is moved.  Note that @target may have a null editableObject.
-		internal override void OnBrushMove(BrushTarget target, BrushSettings settings)
-		{
-			base.OnBrushMove(target, settings);
-		}
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
+            data.LastBrushApplication = 0f;
+        }
+
 
 		// Called when the mouse exits hovering an editable object.
 		internal override void OnBrushExit(EditableObject target)
 		{
 			base.OnBrushExit(target);
-		}
+
+            if(m_EditableObjectsData.ContainsKey(target))
+                m_EditableObjectsData.Remove(target);
+        }
 
 		internal override void OnBrushBeginApply(BrushTarget target, BrushSettings settings)
 		{
@@ -197,10 +204,10 @@ namespace UnityEditor.Polybrush
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
 		{
 			bool invert = settings.isUserHoldingControl;
-
-			if( (EditorApplication.timeSinceStartup - m_LastBrushApplication) > Mathf.Max(.06f, (1f - settings.strength)) )
-			{
-				m_LastBrushApplication = EditorApplication.timeSinceStartup;
+            var data = m_EditableObjectsData[target.editableObject];
+			if( (EditorApplication.timeSinceStartup - data.LastBrushApplication) > Mathf.Max(.06f, (1f - settings.strength)) )
+            {
+				data.LastBrushApplication = EditorApplication.timeSinceStartup;
 
 				if(invert)
 				{
@@ -267,9 +274,10 @@ namespace UnityEditor.Polybrush
                     rotationSetting.y = Random.Range(placementSettings.rotationRangeMin.y, placementSettings.rotationRangeMax.y);
                 if (placementSettings.xRotationBool)
                     rotationSetting.z = Random.Range(placementSettings.rotationRangeMin.z, placementSettings.rotationRangeMax.z);
-               
 
-				Quaternion rotation = Quaternion.FromToRotation(Vector3.up, target.transform.TransformDirection(rand_hit.normal));
+				Quaternion rotation = SceneView.lastActiveSceneView.in2DMode ?
+                                        Quaternion.FromToRotation(-Vector3.forward, target.transform.TransformDirection(rand_hit.normal)):
+                                        Quaternion.FromToRotation(Vector3.up, target.transform.TransformDirection(rand_hit.normal));
 
                 GameObject inst = (GameObject) PrefabUtility.InstantiatePrefab(prefab);
                 inst.transform.position = target.transform.TransformPoint(rand_hit.position);
@@ -282,7 +290,9 @@ namespace UnityEditor.Polybrush
 
                 inst.transform.position = inst.transform.position - (inst.transform.up * pivotOffset);
                 inst.transform.rotation = inst.transform.rotation * Quaternion.Euler(rotationSetting);
-    
+
+                if(SceneView.lastActiveSceneView.in2DMode)
+                    inst.transform.position += Vector3.back * s_2DDepthOffset;
 
                 if ( s_AvoidOverlappingGameObjects && TestIntersection(inst) )
 				{
@@ -304,14 +314,19 @@ namespace UnityEditor.Polybrush
 			Vector3 worldHitPosition = target.editableObject.transform.TransformPoint(hit.position);
 
 			int count = m_PrefabsInstances.Count;
-            
+
 			for(int i = 0; i < count; i++)
 			{
                 // Skip the object if prefab is not part of the current loadout.
                 if (!prefabLoadoutEditor.ContainsPrefabInstance(m_PrefabsInstances[i]))
                     continue;
 
-                if ( m_PrefabsInstances[i] != null && Vector3.Distance(worldHitPosition, m_PrefabsInstances[i].transform.position) < settings.radius )
+				float pivotOffset = s_UsePivotForPlacement ? 0f : GetPivotOffset(m_PrefabsInstances[i]);
+                float prefabDistance = SceneView.lastActiveSceneView.in2DMode
+                    ? Vector2.Distance(worldHitPosition, m_PrefabsInstances[i].transform.position + (pivotOffset * m_PrefabsInstances[i].transform.up))
+                    : Vector3.Distance(worldHitPosition, m_PrefabsInstances[i].transform.position + (pivotOffset * m_PrefabsInstances[i].transform.up));
+
+                if ( m_PrefabsInstances[i] != null &&  prefabDistance < settings.radius )
                 {
                     GameObject go = m_PrefabsInstances[i];
 					m_PrefabsInstances.RemoveAt(i);

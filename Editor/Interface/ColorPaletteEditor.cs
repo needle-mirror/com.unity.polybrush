@@ -95,6 +95,8 @@ namespace UnityEditor.Polybrush
 					m_IsBetweenRepaint = true;
 				else if(e.type == EventType.Repaint)
 					m_IsBetweenRepaint = false;
+                else if(e.type == EventType.Ignore && status == Status.Dragging)
+                    Reset();
 
 				if(!m_WantsUpdate || m_IsBetweenRepaint)
 					return;
@@ -237,7 +239,7 @@ namespace UnityEditor.Polybrush
                             GUI.backgroundColor = current;
 
                             EditorGUIUtility.SetIconSize(new Vector2(10, 11));
-                                
+
                             if (GUILayout.Button(m_GCAddColorSwatch, s_StyleForColorSwatch,
                                     GUILayout.MinWidth(swatchSize),
                                     GUILayout.MaxWidth(swatchSize),

@@ -80,11 +80,17 @@ namespace UnityEditor.Polybrush
             Configuration,
         }
 
-        [System.NonSerialized]
-        SplatSet splat_cache = null,
-                    splat_target = null,
-                    splat_erase = null,
-                    splat_current = null;
+        class EditableObjectData
+        {
+            public int VertexCount;
+            public EditableObject CacheTarget;
+            public List<Material> CacheMaterials;
+            public SplatSet SplatCache,
+                SplatTarget,
+                SplatErase,
+                SplatCurrent;
+            public Dictionary<PolyEdge, List<int>> TriangleLookup;
+        }
 
         internal SplatWeight brushColor = null;
 
@@ -101,19 +107,16 @@ namespace UnityEditor.Polybrush
             }
         }
 
-        [SerializeField]
-        int m_VertexCount = 0;
-
         bool m_LikelySupportsTextureBlending = true;
 
         AttributeLayoutContainer m_MeshAttributesContainer = null;
         List<AttributeLayoutContainer> m_MeshAttributesContainers = new List<AttributeLayoutContainer>();
 
         string[] m_AvailableMaterialsAsString = { };
-        EditableObject m_CacheTarget = null;
-        List<Material> m_CacheMaterials = null;
+        EditableObject m_MainCacheTarget = null;
+        List<Material> m_MainCacheMaterials = new List<Material>();
 
-        Dictionary<PolyEdge, List<int>> m_TriangleLookup = null;
+        Dictionary<EditableObject,EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
         // temp vars
         PolyEdge[] m_FillModeEdges = new PolyEdge[3];
@@ -121,7 +124,7 @@ namespace UnityEditor.Polybrush
 
         internal int currentMeshACIndex = 0;
         internal PaintMode paintMode = PaintMode.Brush;
-        
+
         PanelView m_CurrentPanelView = PanelView.Paint;
 
         internal AttributeLayout[] meshAttributes
@@ -142,18 +145,19 @@ namespace UnityEditor.Polybrush
 			base.OnEnable();
 
             m_CurrentPanelView = PanelView.Paint;
-			
+
 			m_LikelySupportsTextureBlending = false;
 			m_MeshAttributesContainer = null;
 			brushColor = null;
-			
-			if (meshAttributes != null)    
+
+            RebuildMaterialCaches();
+
+			if (meshAttributes != null)
                 OnMaterialSelected();
-			
+
 			foreach(GameObject go in Selection.gameObjects)
 			{
 				m_LikelySupportsTextureBlending = CheckForTextureBlendSupport(go);
-
 				if(m_LikelySupportsTextureBlending)
 					break;
 			}
@@ -185,7 +189,7 @@ namespace UnityEditor.Polybrush
                 EditorGUILayout.BeginHorizontal();
                 EditorGUI.BeginChangeCheck();
 
-                EditorGUILayout.LabelField("Material :", GUILayout.Width(60));
+                EditorGUILayout.LabelField("Material", GUILayout.Width(60));
                 if (m_CurrentPanelView == PanelView.Configuration)
                     GUI.enabled = false;
 
@@ -203,7 +207,7 @@ namespace UnityEditor.Polybrush
                         CloseConfiguration(false);
                     if (GUILayout.Button("Save", GUILayout.Width(70)))
                         CloseConfiguration(true);
-                    
+
                 }
 
                 if (EditorGUI.EndChangeCheck())
@@ -214,17 +218,17 @@ namespace UnityEditor.Polybrush
 
                 EditorGUILayout.EndHorizontal();
             }
-            
+
             EditorGUILayout.Space();
 
             if (m_CurrentPanelView == PanelView.Paint)
                 DrawGUIPaintView();
             else if (m_CurrentPanelView == PanelView.Configuration)
             {
-                Material selectedMat = m_CacheMaterials[currentMeshACIndex];
+                Material selectedMat = m_MainCacheMaterials[currentMeshACIndex];
 
                 string[] names = selectedMat.GetTexturePropertyNames();
-            
+
                 using (new GUILayout.VerticalScope())
                 {
                     for (int i = 0; i < names.Length; ++i)
@@ -238,6 +242,7 @@ namespace UnityEditor.Polybrush
                 }
             }
         }
+
         struct MaterialPropertyInfo
         {
             public string PropertyName;
@@ -272,10 +277,7 @@ namespace UnityEditor.Polybrush
 
         private void OnMaterialSelected()
         {
-            if (currentMeshACIndex < 0 || currentMeshACIndex > (m_CacheMaterials.Count - 1))
-                throw new IndexOutOfRangeException("currentMeshACIndex");
-
-            Material selectedMat = m_CacheMaterials[currentMeshACIndex];
+            Material selectedMat = m_MainCacheMaterials[currentMeshACIndex];
             string[] names = selectedMat.GetTexturePropertyNames();
 
             materialPropertiesCache.Clear();
@@ -298,7 +300,9 @@ namespace UnityEditor.Polybrush
         {
             m_CurrentPanelView = PanelView.Configuration;
 
-            Material mat = m_CacheMaterials[currentMeshACIndex];
+            if (m_MainCacheMaterials == null || currentMeshACIndex < 0 || currentMeshACIndex >= m_MainCacheMaterials.Count)
+                return;
+            Material mat = m_MainCacheMaterials[currentMeshACIndex];
             Shader shader = mat.shader;
 
             if (ShaderMetaDataUtility.IsValidShader(shader))
@@ -318,7 +322,7 @@ namespace UnityEditor.Polybrush
         {
             if (saveOnDisk)
             {
-                Material mat = m_CacheMaterials[currentMeshACIndex];
+                Material mat = m_MainCacheMaterials[currentMeshACIndex];
                 Shader shader = mat.shader;
 
                 ShaderMetaDataUtility.SaveShaderMetaData(shader, m_LoadedAttributes);
@@ -329,17 +333,12 @@ namespace UnityEditor.Polybrush
                     if(m_LikelySupportsTextureBlending)
                         break;
                 }
-
-                if (m_CacheTarget != null)
-                {
-                    RebuildCaches(m_CacheTarget.editMesh);
-                }
             }
 
             m_LoadedAttributes = null;
             m_CurrentPanelView = PanelView.Paint;
         }
-        
+
         private void DrawGUIPaintView()
         {
             if (meshAttributes != null)
@@ -397,7 +396,7 @@ namespace UnityEditor.Polybrush
 
             }
         }
-        
+
         private void DrawConfigurationPanel(MaterialPropertyInfo guiInfo, string propertyName, Material mat)
         {
             using (new GUILayout.HorizontalScope("box"))
@@ -434,9 +433,9 @@ namespace UnityEditor.Polybrush
                     if (m_LoadedAttributes.HasAttributes(propertyName) && guiInfo.IsVisible)
                     {
                         AttributeLayout attr = m_LoadedAttributes.GetAttributes(propertyName);
-                        
+
                         EditorGUILayout.Space();
-                        
+
                         using (new GUILayout.HorizontalScope())
                         {
                             using (new GUILayout.VerticalScope(GUILayout.Width(70), GUILayout.ExpandWidth(false)))
@@ -456,7 +455,7 @@ namespace UnityEditor.Polybrush
                                 GUILayout.Label("Is Base Texture");
                             }
                             GUILayout.FlexibleSpace();
-                            
+
                             using (new GUILayout.VerticalScope())
                             {
                                 // Channel selection
@@ -483,7 +482,8 @@ namespace UnityEditor.Polybrush
         internal override void OnBrushSettingsChanged(BrushTarget target, BrushSettings settings)
 		{
 			base.OnBrushSettingsChanged(target, settings);
-			RebuildColorTargets(brushColor, settings.strength);
+			RebuildColorTargets(target?.editableObject, brushColor, settings.strength);
+            //RebuildColorTargets(brushColor, settings.strength);
 		}
 
         /// <summary>
@@ -534,7 +534,7 @@ namespace UnityEditor.Polybrush
 			if(	brushColor == null ||
 				meshAttributes == null)
 				return;
-            
+
 			if(meshAttributes[index].mask > -1)
 			{
 				for(int i = 0; i < meshAttributes.Length; i++)
@@ -546,30 +546,6 @@ namespace UnityEditor.Polybrush
 			brushColor.SetAttributeValue(meshAttributes[index], meshAttributes[index].max);
 		}
 
-        /// <summary>
-        /// Helper function for comparing whether two lists are equivalent.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <returns>true if lists are equivalent, false otherwise</returns>
-        private bool AreListsEqual<T>(List<T> a, List<T> b)
-        {
-            if(a.Count != b.Count)
-            {
-                return false;
-            }
-
-            for(int i = 0, n = a.Count; i < n; i++)
-            {
-                if(!a[i].Equals(b[i]))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-        
 		// Called when the mouse begins hovering an editable object.
 		internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
 		{
@@ -578,22 +554,18 @@ namespace UnityEditor.Polybrush
 			if(target.editMesh == null)
 				return;
 
-            bool refresh = (m_CacheTarget != null && !m_CacheTarget.Equals(target)) || m_CacheTarget == null;
-            if (m_CacheTarget != null && m_CacheTarget.Equals(target.gameObjectAttached))
+            bool refresh = (m_MainCacheTarget != null && !m_MainCacheTarget.Equals(target)) || m_MainCacheTarget == null;
+
+            if (m_MainCacheTarget != null && m_MainCacheTarget.Equals(target))
             {
                 var targetMaterials = target.gameObjectAttached.GetMaterials();
-                refresh = !AreListsEqual(targetMaterials, m_CacheMaterials);
+                refresh = !targetMaterials.SequenceEqual(m_MainCacheMaterials);
             }
 
             if (refresh)
             {
-                m_CacheTarget = target;
-                m_CacheMaterials = target.gameObjectAttached.GetMaterials();
-                m_MeshAttributesContainer = null;
-                currentMeshACIndex = 0;
-                ArrayUtility.Clear(ref m_AvailableMaterialsAsString);
-                m_LikelySupportsTextureBlending = CheckForTextureBlendSupport(target.gameObjectAttached);
-                RebuildCaches(target.editMesh);
+                SetActiveObject(target);
+                RebuildMaterialCaches();
             }
 
             if (m_LikelySupportsTextureBlending && (brushColor == null || !brushColor.MatchesAttributes(meshAttributes)))
@@ -601,7 +573,20 @@ namespace UnityEditor.Polybrush
                 brushColor = new SplatWeight(SplatWeight.GetChannelMap(meshAttributes));
                 SetBrushColorWithAttributeIndex(selectedAttributeIndex);
             }
-            RebuildColorTargets(brushColor, settings.strength);
+            RebuildColorTargets(target, brushColor, settings.strength);
+        }
+
+        void RebuildMaterialCaches()
+        {
+            ArrayUtility.Clear(ref m_AvailableMaterialsAsString);
+            currentMeshACIndex = 0;
+            m_MainCacheMaterials.Clear();
+            if (m_MainCacheTarget == null)
+                return;
+            m_MainCacheMaterials = m_MainCacheTarget.gameObjectAttached.GetMaterials();
+            m_MeshAttributesContainer = null;
+            currentMeshACIndex = 0;
+            m_LikelySupportsTextureBlending = CheckForTextureBlendSupport(m_MainCacheTarget.gameObjectAttached);
         }
 
 		// Called whenever the brush is moved.  Note that @target may have a null editableObject.
@@ -612,6 +597,14 @@ namespace UnityEditor.Polybrush
 			if(!Util.IsValid(target) || !m_LikelySupportsTextureBlending || meshAttributes.Length == 0)
 				return;
 
+            if(!m_EditableObjectsData.ContainsKey(target.editableObject))
+                return;
+
+            var data = m_EditableObjectsData[target.editableObject];
+
+            if(!data.CacheMaterials.Contains(m_MainCacheMaterials[currentMeshACIndex]))
+                return;
+
 			bool invert = settings.isUserHoldingControl;
 			float[] weights;
 
@@ -621,14 +614,14 @@ namespace UnityEditor.Polybrush
 			}
 			else if(paintMode == PaintMode.Flood)
 			{
-				weights = new float[m_VertexCount];
+				weights = new float[data.VertexCount];
 
-				for(int i = 0; i < m_VertexCount; i++)
+				for(int i = 0; i < data.VertexCount; i++)
 					weights[i] = 1f;
 			}
 			else
 			{
-				weights = new float[m_VertexCount];
+				weights = new float[data.VertexCount];
 				int[] indices = target.editableObject.editMesh.GetTriangles();
 				int index = 0;
 				float weightTarget = 1f;
@@ -650,7 +643,7 @@ namespace UnityEditor.Polybrush
 
 						for(int i = 0; i < 3; i++)
 						{
-							if(m_TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
+							if(data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
 							{
 								for(int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
 								{
@@ -665,11 +658,11 @@ namespace UnityEditor.Polybrush
 					}
 				}
 			}
-            
+
 			int mask = meshAttributes[selectedAttributeIndex].mask;
 
-			splat_current.LerpWeights(splat_cache, invert ? splat_erase : splat_target, mask, weights);
-			splat_current.Apply(target.editableObject.editMesh);
+			data.SplatCurrent.LerpWeights(data.SplatCache, invert ? data.SplatErase : data.SplatTarget, mask, weights);
+			data.SplatCurrent.Apply(target.editableObject.editMesh);
 			target.editableObject.ApplyMeshAttributes();
 		}
 
@@ -678,24 +671,32 @@ namespace UnityEditor.Polybrush
 		{
 			base.OnBrushExit(target);
 
-			if(splat_cache != null)
+            if(!m_EditableObjectsData.ContainsKey(target))
+                return;
+
+            var data = m_EditableObjectsData[target];
+			if(data.SplatCache != null)
 			{
-				splat_cache.Apply(target.editMesh);
+				data.SplatCache.Apply(target.editMesh);
 				target.ApplyMeshAttributes();
 				target.graphicsMesh.UploadMeshData(false);
 			}
 
-			//likelySupportsTextureBlending = true;
+            if(m_MainCacheTarget != null && data.CacheTarget.Equals(m_MainCacheTarget))
+                m_MainCacheTarget = null;
+
+            m_EditableObjectsData.Remove(target);
 		}
 
 		// Called every time the brush should apply itself to a valid target.  Default is on mouse move.
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
 		{
 			if(!m_LikelySupportsTextureBlending)
-				return; 
+				return;
 
-			splat_current.CopyTo(splat_cache);
-			splat_cache.Apply(target.editableObject.editMesh);
+            var data = m_EditableObjectsData[target.editableObject];
+			data.SplatCurrent.CopyTo(data.SplatCache);
+			data.SplatCache.Apply(target.editableObject.editMesh);
 
             MeshChannel channelsChanged =
                 MeshChannel.Color | MeshChannel.Tangent | MeshChannel.UV0 | MeshChannel.UV2 | MeshChannel.UV3 | MeshChannel.UV4;
@@ -706,9 +707,13 @@ namespace UnityEditor.Polybrush
 		// set mesh splat_current back to their original state before registering for undo
 		internal override void RegisterUndo(BrushTarget brushTarget)
 		{
-			if(splat_cache != null)
+            if(!m_EditableObjectsData.ContainsKey(brushTarget.editableObject))
+                return;
+
+            var data = m_EditableObjectsData[brushTarget.editableObject];
+			if(data.SplatCache != null)
 			{
-				splat_cache.Apply(brushTarget.editableObject.editMesh);
+				data.SplatCache.Apply(brushTarget.editableObject.editMesh);
 				brushTarget.editableObject.ApplyMeshAttributes();
 			}
 
@@ -731,6 +736,7 @@ namespace UnityEditor.Polybrush
 
 				int index = 0;
 
+                var data = m_EditableObjectsData[target.editableObject];
 				foreach(PolyRaycastHit hit in target.raycastHits)
 				{
 					if(hit.triangle > -1)
@@ -754,7 +760,7 @@ namespace UnityEditor.Polybrush
 
 						for(int i = 0; i < 3; i++)
 						{
-							if(m_TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
+							if(data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
 							{
 								for(int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
 								{
@@ -781,12 +787,12 @@ namespace UnityEditor.Polybrush
 
 	    internal void RefreshPreviewTextureCache()
 	    {
-	        if (m_CacheTarget != null)
+	        if (m_MainCacheTarget != null)
 	        {
 	            for (int i = 0; i < meshAttributes.Length; ++i)
 	            {
 	                AttributeLayout attributes = meshAttributes[i];
-	                attributes.previewTexture = (Texture2D)m_CacheMaterials[currentMeshACIndex].GetTexture(attributes.propertyTarget);
+	                attributes.previewTexture = (Texture2D)m_MainCacheMaterials[currentMeshACIndex].GetTexture(attributes.propertyTarget);
 	            }
 	        }
 	    }
@@ -809,19 +815,24 @@ namespace UnityEditor.Polybrush
             return null;
         }
 
-        void RebuildColorTargets(SplatWeight blend, float strength)
+        void RebuildColorTargets(EditableObject target, SplatWeight blend, float strength)
         {
-            if (blend == null || splat_cache == null || splat_target == null)
+            if(target == null)
                 return;
 
-            m_MinWeights = splat_target.GetMinWeights();
+            var data = m_EditableObjectsData[target];
 
-            splat_target.LerpWeights(splat_cache, blend, strength);
-            
+            if (blend == null || data.SplatCache == null || data.SplatTarget == null)
+                return;
+
+            m_MinWeights = data.SplatTarget.GetMinWeights();
+
+            data.SplatTarget.LerpWeights(data.SplatCache, blend, strength);
+
             // get index of texture that is being painted
             var attrib = meshAttributes[selectedAttributeIndex];
             int index = blend.GetAttributeIndex(attrib);
-                
+
             var baseTexture = attrib.isBaseTexture? attrib : GetBaseTexture();
             int baseTexIndex = -1;
             if (baseTexture != null)
@@ -829,7 +840,7 @@ namespace UnityEditor.Polybrush
                 baseTexIndex = blend.GetAttributeIndex(baseTexture);
             }
 
-            splat_erase.LerpWeightOnSingleChannel(splat_cache, m_MinWeights, strength, index, baseTexIndex);
+            data.SplatErase.LerpWeightOnSingleChannel(data.SplatCache, m_MinWeights, strength, index, baseTexIndex);
         }
 
         void SetupBaseTextures(SplatSet set)
@@ -838,7 +849,7 @@ namespace UnityEditor.Polybrush
             // map mask index to indices of other textures in mask
             Dictionary<int, int> baseTexToMask = new Dictionary<int, int>();
             Dictionary<int, List<int>> maskToIndices = new Dictionary<int, List<int>>();
-            
+
             foreach(var attr in meshAttributes)
             {
                 if (attr.isBaseTexture)
@@ -862,27 +873,44 @@ namespace UnityEditor.Polybrush
             set.SetChannelBaseTextureWeights(MeshChannel.Color, baseTexToMask, maskToIndices);
         }
 
-        void RebuildCaches(PolyMesh m)
+        void SetActiveObject(EditableObject activeObject)
         {
-            m_VertexCount = m.vertexCount;
-            m_TriangleLookup = PolyMeshUtility.GetAdjacentTriangles(m);
+            m_MainCacheTarget = activeObject;
+
+            EditableObjectData data;
+
+            if(!m_EditableObjectsData.TryGetValue(activeObject, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(activeObject, data);
+            }
+
+            data.CacheTarget = activeObject;
+            data.CacheMaterials = activeObject.gameObjectAttached.GetMaterials();
+            RebuildCaches(data);
+        }
+
+        void RebuildCaches(EditableObjectData data)
+        {
+            PolyMesh mesh = data.CacheTarget.editMesh;
+            data.VertexCount = mesh.vertexCount;
+            data.TriangleLookup = PolyMeshUtility.GetAdjacentTriangles(mesh);
 
             if (meshAttributes == null)
             {
                 // clear caches
-                splat_cache = null;
-                splat_current = null;
-                splat_target = null;
-                splat_erase = null;
+                data.SplatCache = null;
+                data.SplatCurrent = null;
+                data.SplatTarget = null;
+                data.SplatErase = null;
                 return;
             }
 
-            splat_cache = new SplatSet(m, meshAttributes);
-            SetupBaseTextures(splat_cache);
-            splat_current = new SplatSet(splat_cache);
-            splat_target = new SplatSet(m_VertexCount, meshAttributes);
-            splat_erase = new SplatSet(m_VertexCount, meshAttributes);
+            data.SplatCache = new SplatSet(mesh, meshAttributes);
+            SetupBaseTextures(data.SplatCache);
+            data.SplatCurrent = new SplatSet(data.SplatCache);
+            data.SplatTarget = new SplatSet(data.VertexCount, meshAttributes);
+            data.SplatErase = new SplatSet(data.VertexCount, meshAttributes);
         }
-
     }
 }

@@ -317,15 +317,16 @@ namespace UnityEditor.Polybrush
 
                 PrefabPaletteEditor sourceEditor = prefabPaletteEditors[copyPastePrefabSettings.palette];
                 PrefabPaletteEditor destEditor = prefabPaletteEditors[loadout.palette];
-                SerializedProperty srcPAS = sourceEditor.prefabs.GetArrayElementAtIndex(loadout.palette.FindIndex(loadout.prefab));
+                SerializedProperty srcPAS = sourceEditor.prefabs.GetArrayElementAtIndex(copyPastePrefabSettings.palette.FindIndex(copyPastePrefabSettings.prefab));
                 SerializedProperty srcPS = srcPAS.FindPropertyRelative("settings");
                 destEditor.serializedObject.Update();
+                List<SerializedProperty> destPSs = new List<SerializedProperty>();
                 foreach (int i in selected)
                 {
                     SerializedProperty destPAS = destEditor.prefabs.GetArrayElementAtIndex(i);
-                    SerializedProperty destPS = destPAS.FindPropertyRelative("settings");
-                    PlacementSettings.CopySerializedProperty(srcPS, destPS);
+                    destPSs.Add(destPAS.FindPropertyRelative("settings"));
                 }
+                PlacementSettings.CopySerializedProperty(srcPS, destPSs);
                 destEditor.serializedObject.ApplyModifiedProperties();
             }
         }

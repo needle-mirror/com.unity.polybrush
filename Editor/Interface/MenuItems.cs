@@ -23,12 +23,6 @@ namespace UnityEditor.Polybrush
             EditorWindow.GetWindow<BakeAdditionalVertexStreams>(true, "Bake Vertex Streams", true);
         }
 
-        [MenuItem("Tools/Polybrush/Next Brush", true, 100)]
-        static bool VerifyCycleBrush()
-        {
-            return editor != null;
-        }
-
 #pragma warning disable 612
         [MenuItem("Tools/Polybrush/Update Z_AdditionalVertexStreams")]
         static void Convert()

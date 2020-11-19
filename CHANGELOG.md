@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-pre.1] - 2020-11-19
+
+### Features
+
+- Added new Simple Texture Blend shader example.
+- [case: 1197102] Adding support for painting on multiple meshes 
+- Adding better support for prefab painting in 2D mode (placement and removal)
+
+### Bug Fixes
+
+- [case: 1271427] Improving UpdateBrush performances, reducing calls to repaint method  
+- [case: 1268586] Fixed erase problem when painting/removing prefabs where the pivot was too far from the brush
+- [case: 1271799] Fixed broken Copy/Paste of Prefab Settings
+- [case: 1270029] Fixed color palette does not disappear when dragged outside editor window.
+- [case: 1275880, 1275887] Fixed potential errors caused by out of sync material caches in Texture Painting mode.
+- [case: 1238128] Fixed `Standard Texture Blend` shader rendering black when graphics API is set to Metal.
+
 ## [1.0.2] - 2020-08-04
 
 ### Bug Fixes

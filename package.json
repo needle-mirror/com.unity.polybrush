@@ -1,8 +1,8 @@
 {
   "name": "com.unity.polybrush",
   "displayName": "Polybrush",
-  "version": "1.0.2",
-  "unity": "2018.3",
+  "version": "1.1.0-pre.1",
+  "unity": "2018.4",
   "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.",
   "keywords": [
     "modeling",
@@ -31,13 +31,15 @@
   "dependencies": {
     "com.unity.settings-manager": "1.0.3"
   },
-  "relatedPackages": {},
+  "relatedPackages": {
+    "com.unity.polybrush.tests": "1.1.0-pre.1"
+  },
   "upmCi": {
-    "footprint": "0b4480777f7e7b27fbcfc7bdf93a9636d6f14756"
+    "footprint": "08975dea7e2eb0aecc4f55c1dd84eaf7f9208961"
   },
   "repository": {
     "url": "https://github.com/Unity-Technologies/polybrush.git",
     "type": "git",
-    "revision": "55f0abdbad1d1c08e999a55237499f00b0ce91b9"
+    "revision": "fa7885410a08df34ed1603b5da74a7c02e69717f"
   }
 }

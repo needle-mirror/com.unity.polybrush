@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -70,7 +71,7 @@ namespace UnityEditor.Polybrush
             prop.FindPropertyRelative("m_UniformScale").vector2Value = new Vector3(1f, 1f);
         }
 
-        internal static void CopySerializedProperty(SerializedProperty src, SerializedProperty dest)
+        internal static void CopySerializedProperty(SerializedProperty src, IList<SerializedProperty> destList)
         {
             var strength = src.FindPropertyRelative("m_Strength").floatValue;
             var rotationRangeMin = src.FindPropertyRelative("m_RotationRangeMin").vector3Value;
@@ -85,21 +86,24 @@ namespace UnityEditor.Polybrush
             var yScaleBool = src.FindPropertyRelative("m_YScaleBool").boolValue;
             var zScaleBool = src.FindPropertyRelative("m_ZScaleBool").boolValue;
             var uniformBool = src.FindPropertyRelative("m_UniformBool").boolValue;
-           
-            dest.FindPropertyRelative("m_Strength").floatValue = strength;
-            dest.FindPropertyRelative("m_RotationRangeMin").vector3Value = rotationRangeMin;
-            dest.FindPropertyRelative("m_RotationRangeMax").vector3Value = rotationRangeMax;
-            dest.FindPropertyRelative("m_ScaleRangeMin").vector3Value = scaleRangeMin;
-            dest.FindPropertyRelative("m_ScaleRangeMax").vector3Value = scaleRangeMax;
-            dest.FindPropertyRelative("m_UniformScale").vector2Value = uniformScale;
-            dest.FindPropertyRelative("m_XRotationBool").boolValue = xRotationBool;
-            dest.FindPropertyRelative("m_YRotationBool").boolValue = yRotationBool;
-            dest.FindPropertyRelative("m_ZRotationBool").boolValue = zRotationBool;
-            dest.FindPropertyRelative("m_XScaleBool").boolValue = xScaleBool;
-            dest.FindPropertyRelative("m_YScaleBool").boolValue = yScaleBool;
-            dest.FindPropertyRelative("m_ZScaleBool").boolValue = zScaleBool;
-            dest.FindPropertyRelative("m_UniformBool").boolValue = uniformBool;
-        }       
+
+            foreach(var dest in destList)
+            {
+                dest.FindPropertyRelative("m_Strength").floatValue = strength;
+                dest.FindPropertyRelative("m_RotationRangeMin").vector3Value = rotationRangeMin;
+                dest.FindPropertyRelative("m_RotationRangeMax").vector3Value = rotationRangeMax;
+                dest.FindPropertyRelative("m_ScaleRangeMin").vector3Value = scaleRangeMin;
+                dest.FindPropertyRelative("m_ScaleRangeMax").vector3Value = scaleRangeMax;
+                dest.FindPropertyRelative("m_UniformScale").vector2Value = uniformScale;
+                dest.FindPropertyRelative("m_XRotationBool").boolValue = xRotationBool;
+                dest.FindPropertyRelative("m_YRotationBool").boolValue = yRotationBool;
+                dest.FindPropertyRelative("m_ZRotationBool").boolValue = zRotationBool;
+                dest.FindPropertyRelative("m_XScaleBool").boolValue = xScaleBool;
+                dest.FindPropertyRelative("m_YScaleBool").boolValue = yScaleBool;
+                dest.FindPropertyRelative("m_ZScaleBool").boolValue = zScaleBool;
+                dest.FindPropertyRelative("m_UniformBool").boolValue = uniformBool;
+            }
+        }
     }
 
     /// <summary>

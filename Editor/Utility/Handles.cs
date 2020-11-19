@@ -49,7 +49,7 @@ namespace UnityEditor.Polybrush
 
 			Vector3 p = matrix.MultiplyPoint3x4(point);
 			Vector3 n = matrix.MultiplyVector(normal).normalized;
-			
+
 			/// radius
 			Handles.color = outerColor;
 			Handles.DrawWireDisc(p, n, brushSettings.radius);
@@ -72,7 +72,7 @@ namespace UnityEditor.Polybrush
 		{
 			Vector3 p = localToWorldMatrix.MultiplyPoint3x4(point);
 			Vector3 n = localToWorldMatrix.MultiplyVector(normal).normalized;
-			
+
 			float r = settings.radius;
 			Vector3 a = Vector3.zero;
 			Quaternion rotation = Quaternion.LookRotation(normal, Vector3.up);

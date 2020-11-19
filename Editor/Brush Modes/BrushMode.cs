@@ -49,8 +49,10 @@ namespace UnityEditor.Polybrush
 			if(!Util.IsValid(target))
 				return;
 
-			tempComponent = target.gameObjectAttached.AddComponent<ZoomOverride>();
-			tempComponent.hideFlags = HideFlags.HideAndDontSave;
+            if(tempComponent == null)
+                tempComponent = target.gameObjectAttached.AddComponent<ZoomOverride>();
+
+            tempComponent.hideFlags = HideFlags.HideAndDontSave;
 			tempComponent.SetWeights(null, 0f);
 		}
 
@@ -75,7 +77,7 @@ namespace UnityEditor.Polybrush
 		}
 
         /// <summary>
-		/// Called on instantiation.  Base implementation sets HideFlags. 
+		/// Called on instantiation.  Base implementation sets HideFlags.
         /// </summary>
         internal virtual void OnEnable()
 		{

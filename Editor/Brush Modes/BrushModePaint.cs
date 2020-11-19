@@ -65,6 +65,15 @@ namespace UnityEditor.Polybrush
             }
         }
 
+        class EditableObjectData
+        {
+            public VertexColorsPaintInfo MeshVertexColors;
+            public bool LikelySupportsVertexColors;
+
+            // used for fill mode
+            public Dictionary<PolyEdge, List<int>> TriangleLookup;
+        }
+
 		// how many applications it should take to reach the full strength
 		const float k_StrengthModifier = 1f/8f;
 		static readonly Color32 s_WhiteColor = new Color32(255, 255, 255, 255);
@@ -72,11 +81,7 @@ namespace UnityEditor.Polybrush
 		[SerializeField]
         internal PaintMode paintMode = PaintMode.Brush;
 
-		[SerializeField]
-        bool m_LikelySupportsVertexColors = false;
-
-        [SerializeField]
-        VertexColorsPaintInfo m_MeshVertexColors;
+        Dictionary<EditableObject, EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
         [SerializeField]
         Color32 m_BrushColor = Color.green;
@@ -94,9 +99,6 @@ namespace UnityEditor.Polybrush
 		// temp vars
 		PolyEdge[] m_FillModeEdges = new PolyEdge[3];
 		List<int> m_FillModeAdjacentTriangles = null;
-
-		// used for fill mode
-		Dictionary<PolyEdge, List<int>> m_TriangleLookup = null;
 
 		internal GUIContent[] modeIcons = new GUIContent[]
 		{
@@ -139,19 +141,19 @@ namespace UnityEditor.Polybrush
         }
 
         // An Editor for the colorPalette.
-        ColorPaletteEditor _colorPaletteEditor = null;
+        ColorPaletteEditor m_ColorPaletteEditor = null;
 
 		ColorPaletteEditor colorPaletteEditor
 		{
 			get
 			{
-				if(_colorPaletteEditor == null || _colorPaletteEditor.target != colorPalette)
+				if(m_ColorPaletteEditor == null || m_ColorPaletteEditor.target != colorPalette)
 				{
-					_colorPaletteEditor = (ColorPaletteEditor) Editor.CreateEditor(colorPalette);
-					_colorPaletteEditor.hideFlags = HideFlags.HideAndDontSave;
+					m_ColorPaletteEditor = (ColorPaletteEditor) Editor.CreateEditor(colorPalette);
+					m_ColorPaletteEditor.hideFlags = HideFlags.HideAndDontSave;
 				}
 
-				return _colorPaletteEditor;
+				return m_ColorPaletteEditor;
 			}
 		}
 
@@ -173,8 +175,8 @@ namespace UnityEditor.Polybrush
 		internal override void OnDisable()
 		{
 			base.OnDisable();
-			if(_colorPaletteEditor != null)
-				Object.DestroyImmediate(_colorPaletteEditor);
+			if(m_ColorPaletteEditor != null)
+				Object.DestroyImmediate(m_ColorPaletteEditor);
 		}
 
         /// <summary>
@@ -203,7 +205,11 @@ namespace UnityEditor.Polybrush
                 paintMode = (PaintMode)GUILayout.Toolbar((int)paintMode, modeIcons);
             }
 
-			if(!m_LikelySupportsVertexColors)
+            bool likelySupportsVertexColors = m_EditableObjectsData.Count == 0;
+            foreach(var kvp in m_EditableObjectsData)
+                likelySupportsVertexColors |= kvp.Value.LikelySupportsVertexColors;
+
+            if(!likelySupportsVertexColors)
 				EditorGUILayout.HelpBox("It doesn't look like any of the materials on this object support vertex colors!", MessageType.Warning);
 
 			colorPaletteEditor.onSelectIndex = (color) => { SetBrushColor(color, brushSettings.strength); };
@@ -217,7 +223,8 @@ namespace UnityEditor.Polybrush
 		internal void SetBrushColor(Color color, float strength)
 		{
 			m_BrushColor = color;
-			m_MeshVertexColors.RebuildColorTargets(color, strength, mask);
+            foreach(var kvp in m_EditableObjectsData)
+                kvp.Value.MeshVertexColors.RebuildColorTargets(color, strength, mask);
 		}
 
 		internal void SetColorPalette(ColorPalette palette)
@@ -232,35 +239,44 @@ namespace UnityEditor.Polybrush
 		{
 			base.OnBrushSettingsChanged(target, settings);
 
-            m_MeshVertexColors.RebuildColorTargets(m_BrushColor, settings.strength, mask);
+            foreach(var kvp in m_EditableObjectsData)
+                kvp.Value.MeshVertexColors.RebuildColorTargets(m_BrushColor, settings.strength, mask);
 		}
 
 		// Called when the mouse begins hovering an editable object.
-		internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
-		{
-			base.OnBrushEnter(target, settings);
+        internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
+        {
+            base.OnBrushEnter(target, settings);
 
-			if(target.graphicsMesh == null)
-				return;
+            if(target.graphicsMesh == null)
+                return;
 
-			RebuildCaches(target, settings);
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
 
-			m_TriangleLookup = PolyMeshUtility.GetAdjacentTriangles(target.editMesh);
+            RebuildCaches(target, settings);
+
+            data.TriangleLookup = PolyMeshUtility.GetAdjacentTriangles(target.editMesh);
 
 			MeshRenderer mr = target.gameObjectAttached.GetComponent<MeshRenderer>();
 
-			if(mr != null && mr.sharedMaterials != null)
-				m_LikelySupportsVertexColors = mr.sharedMaterials.Any(x => x != null && x.shader != null && PolyShaderUtil.SupportsVertexColors(x.shader));
-			else
-				m_LikelySupportsVertexColors = false;
-		}
+            if(mr != null && mr.sharedMaterials != null)
+                data.LikelySupportsVertexColors = mr.sharedMaterials.Any(x =>
+                    x != null && x.shader != null && PolyShaderUtil.SupportsVertexColors(x.shader));
+            else
+                data.LikelySupportsVertexColors = false;
+        }
 
 		// Called whenever the brush is moved.  Note that @target may have a null editableObject.
 		internal override void OnBrushMove(BrushTarget target, BrushSettings settings)
 		{
 			base.OnBrushMove(target, settings);
 
-			if(!Util.IsValid(target))
+			if(!Util.IsValid(target) || !m_EditableObjectsData.ContainsKey(target.editableObject))
 				return;
 
 			bool invert = settings.isUserHoldingControl;
@@ -269,16 +285,19 @@ namespace UnityEditor.Polybrush
 			int vertexCount = mesh.vertexCount;
 			float[] weights = target.GetAllWeights();
 
+            var data = m_EditableObjectsData[target.editableObject];
+            var vertexColorInfo = data.MeshVertexColors;
+
 			switch(paintMode)
 			{
 				case PaintMode.Flood:
 					for(int i = 0; i < vertexCount; i++)
-                        m_MeshVertexColors.Colors[i] = invert? s_WhiteColor : m_MeshVertexColors.TargetColors[i];
+                        vertexColorInfo.Colors[i] = invert? s_WhiteColor : vertexColorInfo.TargetColors[i];
 					break;
 
 				case PaintMode.Fill:
 
-					System.Array.Copy(m_MeshVertexColors.OriginalColors, m_MeshVertexColors.Colors, vertexCount);
+					System.Array.Copy(vertexColorInfo.OriginalColors, vertexColorInfo.Colors, vertexCount);
 					int[] indices = target.editableObject.editMesh.GetTriangles();
 					int index = 0;
 
@@ -288,9 +307,9 @@ namespace UnityEditor.Polybrush
 						{
 							index = hit.triangle * 3;
 
-                            m_MeshVertexColors.Colors[indices[index + 0]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 0]];
-                            m_MeshVertexColors.Colors[indices[index + 1]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 1]];
-                            m_MeshVertexColors.Colors[indices[index + 2]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 2]];
+                            vertexColorInfo.Colors[indices[index + 0]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 0]];
+                            vertexColorInfo.Colors[indices[index + 1]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 1]];
+                            vertexColorInfo.Colors[indices[index + 2]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 2]];
 
 							m_FillModeEdges[0].x = indices[index+0];
 							m_FillModeEdges[0].y = indices[index+1];
@@ -303,15 +322,15 @@ namespace UnityEditor.Polybrush
 
 							for(int i = 0; i < 3; i++)
 							{
-								if(m_TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
+								if(data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
 								{
 									for(int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
 									{
 										index = m_FillModeAdjacentTriangles[n] * 3;
 
-                                        m_MeshVertexColors.Colors[indices[index + 0]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 0]];
-                                        m_MeshVertexColors.Colors[indices[index + 1]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 1]];
-                                        m_MeshVertexColors.Colors[indices[index + 2]] = invert ? s_WhiteColor : m_MeshVertexColors.TargetColors[indices[index + 2]];
+                                        vertexColorInfo.Colors[indices[index + 0]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 0]];
+                                        vertexColorInfo.Colors[indices[index + 1]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 1]];
+                                        vertexColorInfo.Colors[indices[index + 2]] = invert ? s_WhiteColor : vertexColorInfo.TargetColors[indices[index + 2]];
 									}
 								}
 							}
@@ -324,8 +343,8 @@ namespace UnityEditor.Polybrush
                 {
                     for (int i = 0; i < vertexCount; i++)
                     {
-                        m_MeshVertexColors.Colors[i] = Util.Lerp(m_MeshVertexColors.OriginalColors[i],
-                            invert ? m_MeshVertexColors.EraseColors[i] : m_MeshVertexColors.TargetColors[i],
+                        vertexColorInfo.Colors[i] = Util.Lerp(vertexColorInfo.OriginalColors[i],
+                            invert ? vertexColorInfo.EraseColors[i] : vertexColorInfo.TargetColors[i],
                             mask,
                             weights[i]);
                     }
@@ -334,7 +353,7 @@ namespace UnityEditor.Polybrush
                 }
 			}
 
-			target.editableObject.editMesh.colors = m_MeshVertexColors.Colors;
+			target.editableObject.editMesh.colors = vertexColorInfo.Colors;
 			target.editableObject.ApplyMeshAttributes(MeshChannel.Color);
 		}
 
@@ -343,20 +362,25 @@ namespace UnityEditor.Polybrush
 		{
 			base.OnBrushExit(target);
 
-			if(target.editMesh != null)
-			{
-				target.editMesh.colors = m_MeshVertexColors.OriginalColors;
-				target.ApplyMeshAttributes(MeshChannel.Color);
-			}
+            var data = m_EditableObjectsData[target];
 
-			m_LikelySupportsVertexColors = true;
-		}
+            if(target.editMesh != null)
+            {
+                target.editMesh.colors = data.MeshVertexColors.OriginalColors;
+                target.ApplyMeshAttributes(MeshChannel.Color);
+            }
+
+            data.LikelySupportsVertexColors = true;
+
+            m_EditableObjectsData.Remove(target);
+        }
 
 		// Called every time the brush should apply itself to a valid target.  Default is on mouse move.
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
-		{
-			System.Array.Copy(m_MeshVertexColors.Colors, m_MeshVertexColors.OriginalColors, m_MeshVertexColors.Colors.Length);
-			target.editableObject.editMesh.colors = m_MeshVertexColors.OriginalColors;
+        {
+            var vertexColorInfo = m_EditableObjectsData[target.editableObject].MeshVertexColors;
+            System.Array.Copy(vertexColorInfo.Colors, vertexColorInfo.OriginalColors, vertexColorInfo.Colors.Length);
+			target.editableObject.editMesh.colors = vertexColorInfo.OriginalColors;
             target.editableObject.modifiedChannels |= MeshChannel.Color;
 
             base.OnBrushApply(target, settings);
@@ -368,7 +392,7 @@ namespace UnityEditor.Polybrush
         /// <param name="brushTarget">Target object of the brush</param>
         internal override void RegisterUndo(BrushTarget brushTarget)
 		{
-			brushTarget.editableObject.editMesh.colors = m_MeshVertexColors.OriginalColors;
+			brushTarget.editableObject.editMesh.colors = m_EditableObjectsData[brushTarget.editableObject].MeshVertexColors.OriginalColors;
 			brushTarget.editableObject.ApplyMeshAttributes(MeshChannel.Color);
 
 			base.RegisterUndo(brushTarget);
@@ -388,11 +412,12 @@ namespace UnityEditor.Polybrush
 
 				int index = 0;
 
+                var data = m_EditableObjectsData[target.editableObject];
 				foreach(PolyRaycastHit hit in target.raycastHits)
 				{
 					if(hit.triangle > -1)
 					{
-						Handles.color = m_MeshVertexColors.TargetColors[indices[index]];
+						Handles.color = data.MeshVertexColors.TargetColors[indices[index]];
 
 						index = hit.triangle * 3;
 
@@ -411,7 +436,7 @@ namespace UnityEditor.Polybrush
 
 						for(int i = 0; i < 3; i++)
 						{
-							if(m_TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
+							if(data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
 							{
 								for(int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
 								{
@@ -454,13 +479,17 @@ namespace UnityEditor.Polybrush
             int vertexCount = m.vertexCount;
             Color32[] newBaseColors = null;
 
-            if (m.colors != null && m.colors.Length == vertexCount)
+            if(m.colors != null && m.colors.Length == vertexCount)
                 newBaseColors = Util.Duplicate(m.colors);
             else
                 newBaseColors = Util.Fill<Color32>(x => { return Color.white; }, vertexCount);
 
-            m_MeshVertexColors.Build(newBaseColors);
-            m_MeshVertexColors.RebuildColorTargets(m_BrushColor, settings.strength, mask);
+            EditableObjectData data;
+            if(m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data.MeshVertexColors.Build(newBaseColors);
+                data.MeshVertexColors.RebuildColorTargets(m_BrushColor, settings.strength, mask);
+            }
         }
     }
 }

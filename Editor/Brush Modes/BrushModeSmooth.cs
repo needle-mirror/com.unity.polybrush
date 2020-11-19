@@ -10,6 +10,14 @@ namespace UnityEditor.Polybrush
     /// </summary>
     internal class BrushModeSmooth : BrushModeSculpt
     {
+        class EditableObjectData
+        {
+            public Vector3[] vertices;
+            public Dictionary<int, int[]> neighborLookup;
+            public int[][] commonVertices;
+            public int commonVertexCount;
+        }
+
         const float SMOOTH_STRENGTH_MODIFIER = .1f;
 
         [UserSetting]
@@ -24,10 +32,7 @@ namespace UnityEditor.Polybrush
         [UserSetting]
         internal static Pref<bool> s_UseFirstNormalVector = new Pref<bool>("SmoothBrush.UseFirstNormalVector", false, SettingsScope.Project);
 
-        Vector3[] vertices = null;
-        Dictionary<int, int[]> neighborLookup = new Dictionary<int, int[]>();
-        int[][] commonVertices = null;
-        int commonVertexCount;
+        Dictionary<EditableObject,EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
         internal override string UndoMessage { get { return "Smooth Vertices"; } }
         protected override string ModeSettingsHeader { get { return "Smooth Settings"; } }
@@ -53,28 +58,45 @@ namespace UnityEditor.Polybrush
         {
             base.OnBrushEnter(target, settings);
 
-            if (!likelyToSupportVertexSculpt)
+            if (!m_LikelyToSupportVertexSculpt)
                 return;
 
-            vertices = target.editMesh.vertices;
-            neighborLookup = PolyMeshUtility.GetAdjacentVertices(target.editMesh);
-            commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
-            commonVertexCount = commonVertices.Length;
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
+            data.vertices = target.editMesh.vertices;
+            data.neighborLookup = PolyMeshUtility.GetAdjacentVertices(target.editMesh);
+            data.commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
+            data.commonVertexCount = data.commonVertices.Length;
+        }
+
+        // Called when the mouse exits hovering an editable object.
+        internal override void OnBrushExit(EditableObject target)
+        {
+            base.OnBrushExit(target);
+
+            if(m_EditableObjectsData.ContainsKey(target))
+                m_EditableObjectsData.Remove(target);
         }
 
         internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
         {
-            if (!likelyToSupportVertexSculpt)
+            if (!m_LikelyToSupportVertexSculpt)
                 return;
 
             int rayCount = target.raycastHits.Count;
-            
 
             Vector3 v, t, avg, dirVec = s_SmoothDirection.value.ToVector3();
             Plane plane = new Plane(Vector3.up, Vector3.zero);
             PolyMesh mesh = target.editableObject.editMesh;
             Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? mesh.normals : null;
             int vertexCount = mesh.vertexCount;
+
+            List <Vector3> brushNormalOnBeginApply= BrushNormalsOnBeginApply(target.editableObject);
+            var data = m_EditableObjectsData[target.editableObject];
 
             // don't use target.GetAllWeights because brush normal needs
             // to know which ray to use for normal
@@ -85,29 +107,29 @@ namespace UnityEditor.Polybrush
                 if(hit.weights == null || hit.weights.Length < vertexCount)
                     continue;
 
-                for (int i = 0; i < commonVertexCount; i++)
+                for (int i = 0; i < data.commonVertexCount; i++)
                 {
-                    int index = commonVertices[i][0];
+                    int index = data.commonVertices[i][0];
 
-                    if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+                    if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && ContainsIndexInNonManifoldIndices(target.editableObject,index)))
                         continue;
 
-                    v = vertices[index];
+                    v = data.vertices[index];
 
                     if (s_SmoothDirection == PolyDirection.VertexNormal)
                     {
-                        avg = Math.Average(vertices, neighborLookup[index]);
+                        avg = Math.Average(data.vertices, data.neighborLookup[index]);
                     }
                     else
                     {
-                        avg = Math.WeightedAverage(vertices, neighborLookup[index], hit.weights);
+                        avg = Math.WeightedAverage(data.vertices, data.neighborLookup[index], hit.weights);
 
                         if (s_SmoothDirection == PolyDirection.BrushNormal)
                         {
                             if (s_UseFirstNormalVector)
                                 dirVec = brushNormalOnBeginApply[ri].normalized;
                             else
-                                dirVec = Math.WeightedAverage(normals, neighborLookup[index], hit.weights).normalized;
+                                dirVec = Math.WeightedAverage(normals, data.neighborLookup[index], hit.weights).normalized;
                         }
 
                         plane.SetNormalAndPosition(dirVec, avg);
@@ -115,16 +137,16 @@ namespace UnityEditor.Polybrush
                     }
 
                     t = Vector3.Lerp(v, avg, hit.weights[index]);
-                    int[] indices = commonVertices[i];
+                    int[] indices = data.commonVertices[i];
 
                     Vector3 pos = v + (t-v) * settings.strength * SMOOTH_STRENGTH_MODIFIER;
 
                     for(int n = 0; n < indices.Length; n++)
-                        vertices[indices[n]] = pos;
+                        data.vertices[indices[n]] = pos;
                 }
             }
 
-            mesh.vertices = vertices;
+            mesh.vertices = data.vertices;
 
             if(tempComponent != null)
                 tempComponent.OnVerticesMoved(mesh);
@@ -139,13 +161,16 @@ namespace UnityEditor.Polybrush
         ///// <param name="settings">Current brush settings</param>
         internal override void DrawGizmos(BrushTarget target, BrushSettings settings)
         {
-            UpdateBrushGizmosColor();            
+            UpdateBrushGizmosColor();
             Vector3 normal = s_SmoothDirection.value.ToVector3();
 
             int rayCount = target.raycastHits.Count;
             PolyMesh mesh = target.editableObject.editMesh;
             int vertexCount = mesh.vertexCount;
             Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? mesh.normals : null;
+
+            List <Vector3> brushNormalOnBeginApply= BrushNormalsOnBeginApply(target.editableObject);
+            var data = m_EditableObjectsData[target.editableObject];
 
             // don't use target.GetAllWeights because brush normal needs
             // to know which ray to use for normal
@@ -155,7 +180,7 @@ namespace UnityEditor.Polybrush
 
                 if (hit.weights == null || hit.weights.Length < vertexCount)
                     continue;
-                
+
                 if (s_SmoothDirection == PolyDirection.BrushNormal)
                 {
                     if (s_UseFirstNormalVector && brushNormalOnBeginApply.Count > ri)
@@ -167,26 +192,19 @@ namespace UnityEditor.Polybrush
                         // get the highest weighted vertex to use its direction computation
                         float highestWeight = .0001f;
                         int highestIndex = -1;
-                        for (int i = 0; i < commonVertexCount; i++)
+                        for (int i = 0; i < data.commonVertexCount; i++)
                         {
-                            int index = commonVertices[i][0];
-                            if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+                            int index = data.commonVertices[i][0];
+                            if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && ContainsIndexInNonManifoldIndices(target.editableObject, index)))
                                 continue;
 
                             if (hit.weights[index] > highestWeight)
-                            {
                                 highestIndex = index;
-                            }
                         }
 
-                        if (highestIndex != -1)
-                        {
-                            normal = Math.WeightedAverage(normals, neighborLookup[highestIndex], hit.weights).normalized;
-                        }
-                        else
-                        {
-                            normal = hit.normal;
-                        }
+                        normal = highestIndex != -1 ?
+                            Math.WeightedAverage(normals, data.neighborLookup[highestIndex], hit.weights).normalized :
+                            hit.normal;
                     }
                 }
                 else if (s_SmoothDirection == PolyDirection.VertexNormal)

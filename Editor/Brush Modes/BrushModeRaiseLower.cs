@@ -10,6 +10,14 @@ namespace UnityEditor.Polybrush
     /// </summary>
     internal class BrushModeRaiseLower : BrushModeSculpt
 	{
+        class EditableObjectData
+        {
+            public Vector3[] Vertices;
+            public Dictionary<int, Vector3> NormalLookup;
+            public int[][] CommonVertices;
+            public int CommonVertexCount;
+        }
+
         internal new static class Styles
         {
             internal static GUIContent s_GCBrushEffect = new GUIContent("Sculpt Power", "Defines the baseline distance that vertices will be moved when a brush is applied at full strength.");
@@ -31,15 +39,11 @@ namespace UnityEditor.Polybrush
         [UserSetting]
         internal static Pref<bool> s_UseFirstNormalVector = new Pref<bool>("RaiseLowerBrush.StickToFirstAppliedDirection", true, SettingsScope.Project);
 
-		Vector3[] vertices = null;
-		Dictionary<int, Vector3> normalLookup = null;
-		int[][] commonVertices = null;
-		int commonVertexCount;
-
 		protected override string DocsLink { get { return PrefUtility.documentationSculptBrushLink; } }
         internal override string UndoMessage { get { return "Sculpt Vertices"; } }
 		protected override string ModeSettingsHeader { get { return "Sculpt Settings"; } }
 
+        Dictionary<EditableObject,EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
 
 		internal override void DrawGUI(BrushSettings settings)
@@ -56,7 +60,7 @@ namespace UnityEditor.Polybrush
                 (int)s_RaiseLowerDirection.value, BrushModeSculpt.Styles.s_BrushDirectionList);
 
             s_RaiseLowerStrength.value = PolyGUILayout.FloatField(Styles.s_GCBrushEffect, s_RaiseLowerStrength);
-            
+
             if (EditorGUI.EndChangeCheck())
                 PolybrushSettings.Save();
         }
@@ -65,18 +69,36 @@ namespace UnityEditor.Polybrush
 		{
 			base.OnBrushEnter(target, settings);
 
-            if (!likelyToSupportVertexSculpt)
+            if (!m_LikelyToSupportVertexSculpt)
                 return;
 
-            vertices = target.editMesh.vertices;
-			normalLookup = PolyMeshUtility.GetSmoothNormalLookup(target.editMesh);
-			commonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
-			commonVertexCount = commonVertices.Length;
-		}
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
+            data.Vertices = target.editMesh.vertices;
+			data.NormalLookup = PolyMeshUtility.GetSmoothNormalLookup(target.editMesh);
+			data.CommonVertices = PolyMeshUtility.GetCommonVertices(target.editMesh);
+			data.CommonVertexCount = data.CommonVertices.Length;
+        }
+
+        // Called when the mouse exits hovering an editable object.
+        internal override void OnBrushExit(EditableObject target)
+        {
+            base.OnBrushExit(target);
+
+            if(m_EditableObjectsData.ContainsKey(target))
+                m_EditableObjectsData.Remove(target);
+        }
 
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
 		{
-            if (!likelyToSupportVertexSculpt)
+            if (!m_LikelyToSupportVertexSculpt)
+                return;
+
+            if(!m_EditableObjectsData.ContainsKey(target.editableObject))
                 return;
 
             int rayCount = target.raycastHits.Count;
@@ -94,6 +116,9 @@ namespace UnityEditor.Polybrush
 
 			PolyMesh mesh = target.editableObject.editMesh;
 
+            EditableObjectData data = m_EditableObjectsData[target.editableObject];
+            List <Vector3> brushNormalOnBeginApply= BrushNormalsOnBeginApply(target.editableObject);
+
             // rayCount could be different from brushNormalOnBeginApply.Count with some shapes (example: sphere).
 			for(int ri = 0; ri < rayCount && ri < brushNormalOnBeginApply.Count; ri++)
 			{
@@ -107,34 +132,34 @@ namespace UnityEditor.Polybrush
                     if (s_UseFirstNormalVector)
                         n = brushNormalOnBeginApply[ri];
 					else
-						n = target.raycastHits[ri].normal;
+						n = hit.normal;
 
 					scale = 1f / ( Vector3.Scale(target.transform.lossyScale, n).magnitude );
 				}
 
-				for(int i = 0; i < commonVertexCount; i++)
+				for(int i = 0; i < data.CommonVertexCount; i++)
 				{
-					int index = commonVertices[i][0];
+					int index = data.CommonVertices[i][0];
 
-					if(hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+					if(hit.weights[index] < .0001f || (s_IgnoreOpenEdges && ContainsIndexInNonManifoldIndices(target.editableObject,index)))
 						continue;
 
 					if(s_RaiseLowerDirection == PolyDirection.VertexNormal)
 					{
-						n = normalLookup[index];
+						n = data.NormalLookup[index];
 						scale = 1f / ( Vector3.Scale(target.transform.lossyScale, n).magnitude );
 					}
 
-					Vector3 pos = vertices[index] + n * (hit.weights[index] * maxMoveDistance * scale);
+					Vector3 pos = data.Vertices[index] + n * (hit.weights[index] * maxMoveDistance * scale);
 
-					int[] indices = commonVertices[i];
+					int[] indices = data.CommonVertices[i];
 
 					for(int it = 0; it < indices.Length; it++)
-						vertices[indices[it]] = pos;
+						data.Vertices[indices[it]] = pos;
 				}
 			}
 
-			mesh.vertices = vertices;
+			mesh.vertices = data.Vertices;
             target.editableObject.modifiedChannels |= MeshChannel.Position;
 
 			// different than setting weights on temp component,
@@ -152,8 +177,15 @@ namespace UnityEditor.Polybrush
         /// <param name="settings">Current brush settings</param>
         internal override void DrawGizmos(BrushTarget target, BrushSettings settings)
         {
+            if(!m_EditableObjectsData.ContainsKey(target.editableObject))
+                return;
+
+            EditableObjectData data = m_EditableObjectsData[target.editableObject];
+
             UpdateBrushGizmosColor();
             int rayCount = target.raycastHits.Count;
+            List <Vector3> brushNormalOnBeginApply= BrushNormalsOnBeginApply(target.editableObject);
+
             for (int ri = 0; ri < rayCount; ri++)
             {
                 PolyRaycastHit hit = target.raycastHits[ri];
@@ -180,11 +212,11 @@ namespace UnityEditor.Polybrush
                             //if non has enough we take the hit normal.
                             float highestWeight = .0001f;
                             int highestIndex = -1;
-                            for (int i = 0; i < commonVertexCount; i++)
+                            for (int i = 0; i < data.CommonVertexCount; i++)
                             {
-                                int index = commonVertices[i][0];
+                                int index = data.CommonVertices[i][0];
 
-                                if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && nonManifoldIndices.Contains(index)))
+                                if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && ContainsIndexInNonManifoldIndices(target.editableObject,index)))
                                     continue;
 
                                 if (hit.weights[index] > highestWeight)
@@ -195,7 +227,7 @@ namespace UnityEditor.Polybrush
 
                             if (highestIndex != -1)
                             {
-                                normal = normalLookup[highestIndex];
+                                normal = data.NormalLookup[highestIndex];
                             }
                         }
                         break;

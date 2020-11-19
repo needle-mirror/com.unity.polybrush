@@ -10,6 +10,17 @@ namespace UnityEditor.Polybrush
     /// </summary>
     internal abstract class BrushModeSculpt : BrushModeMesh
 	{
+        class EditableObjectData
+        {
+            public List<Vector3> BrushNormalOnBeginApply = new List<Vector3>();
+            public Vector3[] CachedNormals;
+
+            public HashSet<int> NonManifoldIndices;
+            public EditableObject CacheTarget;
+            public List<Material> CacheMaterials;
+
+            public OverlayRenderer TempComponent;
+        }
 
         internal static class Styles
         {
@@ -40,17 +51,12 @@ namespace UnityEditor.Polybrush
             s_VertexBillboardSize.value = SettingsGUILayout.SettingsSlider(new GUIContent("Vertex Render Size", "The size at which selected vertices will be rendered."), s_VertexBillboardSize, 0f, 10f, searchContext);
         }
 
-        protected bool likelyToSupportVertexSculpt = true;
+        Dictionary<EditableObject,EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
-		protected List<Vector3> brushNormalOnBeginApply = new List<Vector3>();
-		protected Vector3[] cached_normals;
+        protected bool m_LikelyToSupportVertexSculpt = true;
 
 		internal override string UndoMessage { get { return "Sculpt Vertices"; } }
 		protected override string ModeSettingsHeader { get { return "Sculpt Settings"; } }
-
-		protected HashSet<int> nonManifoldIndices = null;
-        private EditableObject cache_target = null;
-        private List<Material> cache_materials = null;
 
         internal override void OnEnable()
 		{
@@ -58,11 +64,21 @@ namespace UnityEditor.Polybrush
 
             foreach (GameObject go in Selection.gameObjects)
             {
-                likelyToSupportVertexSculpt = CheckForVertexScluptSupport(go);
+                m_LikelyToSupportVertexSculpt = CheckForVertexScluptSupport(go);
 
-                if (likelyToSupportVertexSculpt)
+                if (m_LikelyToSupportVertexSculpt)
                     break;
             }
+        }
+
+        protected List<Vector3> BrushNormalsOnBeginApply(EditableObject target)
+        {
+            return m_EditableObjectsData[target].BrushNormalOnBeginApply;
+        }
+
+        protected bool ContainsIndexInNonManifoldIndices(EditableObject target, int index)
+        {
+            return m_EditableObjectsData[target].NonManifoldIndices.Contains(index);
         }
 
         /// <summary>
@@ -75,13 +91,32 @@ namespace UnityEditor.Polybrush
             return !go.GetComponentInChildren<SkinnedMeshRenderer>();
         }
 
-
         internal override void OnBrushEnter(EditableObject target, BrushSettings settings)
 		{
 			base.OnBrushEnter(target, settings);
-			nonManifoldIndices = PolyMeshUtility.GetNonManifoldIndices(target.editMesh);
+
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
+
+            data.NonManifoldIndices = PolyMeshUtility.GetNonManifoldIndices(target.editMesh);
 
             RefreshVertexSculptSupport(target);
+        }
+
+        // Called when the mouse exits hovering an editable object.
+        internal override void OnBrushExit(EditableObject target)
+        {
+            base.OnBrushExit(target);
+
+            if(m_EditableObjectsData.ContainsKey(target))
+            {
+                DestroyImmediate(m_EditableObjectsData[target].TempComponent);
+                m_EditableObjectsData.Remove(target);
+            }
         }
 
         /// <summary>
@@ -90,15 +125,19 @@ namespace UnityEditor.Polybrush
         /// <param name="target"></param>
         void RefreshVertexSculptSupport(EditableObject target)
         {
-            bool refresh = (cache_target != null && !cache_target.Equals(target.gameObjectAttached)) || cache_target == null;
-            if (cache_target != null && cache_target.Equals(target.gameObjectAttached))
-                refresh = cache_materials != target.gameObjectAttached.GetMaterials();
-
-            if (refresh)
+            EditableObjectData data;
+            if(m_EditableObjectsData.TryGetValue(target, out data))
             {
-                cache_target = target;
-                cache_materials = target.gameObjectAttached.GetMaterials();
-                likelyToSupportVertexSculpt = CheckForVertexScluptSupport(target.gameObjectAttached);
+                bool refresh = (data.CacheTarget != null && !data.CacheTarget.Equals(target.gameObjectAttached)) || data.CacheTarget == null;
+                if (data.CacheTarget != null && data.CacheTarget.Equals(target.gameObjectAttached))
+                    refresh = data.CacheMaterials != target.gameObjectAttached.GetMaterials();
+
+                if (refresh)
+                {
+                    data.CacheTarget = target;
+                    data.CacheMaterials = target.gameObjectAttached.GetMaterials();
+                    m_LikelyToSupportVertexSculpt = CheckForVertexScluptSupport(target.gameObjectAttached);
+                }
             }
         }
 
@@ -106,10 +145,8 @@ namespace UnityEditor.Polybrush
 		{
 			base.DrawGUI(settings);
 
-            if (!likelyToSupportVertexSculpt)
-            {
+            if (!m_LikelyToSupportVertexSculpt)
                 EditorGUILayout.HelpBox("Sculpting on skin meshes is not supported.", MessageType.Warning);
-            }
 		}
 
         /// <summary>
@@ -117,22 +154,26 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="target">Target object to cache the brush normals and mesh normals from</param>
 		protected void CacheBrushNormals(BrushTarget target)
-		{
-			brushNormalOnBeginApply.Clear();
-
-			for(int i = 0; i < target.raycastHits.Count; i++)
-				brushNormalOnBeginApply.Add(target.raycastHits[i].normal);
-
-			PolyMesh mesh = target.editableObject.editMesh;
-
-			cached_normals = new Vector3[mesh.vertexCount];
-
-            if (mesh.normals != null && mesh.normals.Length == mesh.vertexCount)
+        {
+            EditableObjectData data;
+            if(m_EditableObjectsData.TryGetValue(target.editableObject, out data))
             {
-                System.Array.Copy(mesh.normals, 0, cached_normals, 0, mesh.vertexCount);
-                target.editableObject.modifiedChannels |= MeshChannel.Normal;
+                data.BrushNormalOnBeginApply.Clear();
+
+                for(int i = 0; i < target.raycastHits.Count; i++)
+                    data.BrushNormalOnBeginApply.Add(target.raycastHits[i].normal);
+
+                PolyMesh mesh = target.editableObject.editMesh;
+
+                data.CachedNormals = new Vector3[mesh.vertexCount];
+
+                if(mesh.normals != null && mesh.normals.Length == mesh.vertexCount)
+                {
+                    System.Array.Copy(mesh.normals, 0, data.CachedNormals, 0, mesh.vertexCount);
+                    target.editableObject.modifiedChannels |= MeshChannel.Normal;
+                }
             }
-		}
+        }
 
 		internal override void OnBrushBeginApply(BrushTarget target, BrushSettings settings)
 		{
@@ -142,14 +183,18 @@ namespace UnityEditor.Polybrush
 
         internal override void OnBrushFinishApply(BrushTarget target, BrushSettings settings)
         {
-            brushNormalOnBeginApply.Clear();
             base.OnBrushFinishApply(target, settings);
+            if(target!= null && m_EditableObjectsData.ContainsKey(target.editableObject))
+                m_EditableObjectsData[target.editableObject].BrushNormalOnBeginApply.Clear();
         }
 
         protected override void CreateTempComponent(EditableObject target)
 		{
+            if(target == null)
+                return;
+
             RefreshVertexSculptSupport(target);
-            if (!likelyToSupportVertexSculpt)
+            if (!m_LikelyToSupportVertexSculpt)
                 return;
 
             OverlayRenderer ren = target.gameObjectAttached.AddComponent<OverlayRenderer>();
@@ -159,13 +204,26 @@ namespace UnityEditor.Polybrush
             ren.gradient = s_BrushGradientColor;
             ren.vertexBillboardSize = s_VertexBillboardSize;
 
-			tempComponent = ren;
-		}
+            EditableObjectData data;
+            if(!m_EditableObjectsData.TryGetValue(target, out data))
+            {
+                data = new EditableObjectData();
+                m_EditableObjectsData.Add(target, data);
+            }
+            data.TempComponent = ren;
+        }
 
 		protected override void UpdateTempComponent(BrushTarget target, BrushSettings settings)
-		{
-			if(tempComponent != null)
-				((OverlayRenderer)tempComponent).SetWeights(target.GetAllWeights(), settings.strength);
+        {
+            if(!Util.IsValid(target))
+                return;
+
+            EditableObjectData data;
+            if(m_EditableObjectsData.TryGetValue(target.editableObject, out data))
+            {
+                if(data.TempComponent != null)
+                	((OverlayRenderer)data.TempComponent).SetWeights(target.GetAllWeights(), settings.strength);
+            }
 		}
 	}
 }

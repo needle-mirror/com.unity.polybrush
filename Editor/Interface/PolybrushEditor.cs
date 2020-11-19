@@ -7,6 +7,7 @@ using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
 using System;
+using UnityEngine.Profiling;
 
 namespace UnityEditor.Polybrush
 {
@@ -36,12 +37,6 @@ namespace UnityEditor.Polybrush
         internal static Pref<bool> s_LockBrushToFirst = new Pref<bool>("Brush.LockBrushToFirstObject", true, SettingsScope.Project);
 
         /// <summary>
-        /// Set true to always try to raycast against selection first, even if a mesh is in the way.
-        /// </summary>
-        [UserSetting]
-        internal static Pref<bool> s_IgnoreUnselected = new Pref<bool>("Brush.IgnoreUnselected", true, SettingsScope.Project);
-
-        /// <summary>
         /// Set true to have Polybrush window in floating mode (no dockable).
         /// </summary>
         [UserSetting]
@@ -63,8 +58,11 @@ namespace UnityEditor.Polybrush
         /// </summary>
         MirrorSettingsEditor m_BrushMirrorEditor = null;
 
+
+#if !UNITY_2021_1_OR_NEWER
         // gameobjects that are temporarily ignored by HandleUtility.PickGameObject.
         List<GameObject> m_IgnoreDrag = new List<GameObject>(8);
+#endif
         // All objects that have been hovered by the mouse
         Dictionary<GameObject, BrushTarget> m_Hovering = new Dictionary<GameObject, BrushTarget>();
         GameObject m_LastHoveredGameObject = null;
@@ -84,6 +82,12 @@ namespace UnityEditor.Polybrush
 
 		// The current brush status
 		internal BrushTarget brushTarget = null;
+
+        // The current secondary brushes
+        internal List<BrushTarget> m_SecondaryBrushTargets = new List<BrushTarget>();
+
+        // The secondary brushes detected at the last frame
+        internal List<BrushTarget> m_LastSecondaryBrushTargets = new List<BrushTarget>();
 
         // The first GameObject being stroked
         internal GameObject firstGameObject = null;
@@ -260,6 +264,7 @@ namespace UnityEditor.Polybrush
 
         void OnGUI()
 		{
+            Profiler.BeginSample("Polybrush GUI");
 			Event e = Event.current;
 			GUILayout.Space(8);
 
@@ -312,6 +317,7 @@ namespace UnityEditor.Polybrush
 				m_WantsRepaint = false;
 				Repaint();
 			}
+            Profiler.EndSample();
 		}
 
         void DrawToolbar()
@@ -451,13 +457,6 @@ namespace UnityEditor.Polybrush
 
 				mode.OnDisable();
 			}
-			else
-			{
-#if PROBUILDER_4_0_OR_NEWER
-                if (ProBuilderBridge.ProBuilderExists())
-                    ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.None);
-#endif
-            }
 
             m_LastHoveredGameObject = null;
 
@@ -481,7 +480,7 @@ namespace UnityEditor.Polybrush
 			}
 
             EnsureBrushSettingsListIsValid();
-			Repaint();
+			DoRepaint();
 		}
 
         /// <summary>
@@ -626,6 +625,12 @@ namespace UnityEditor.Polybrush
 
 			if( Util.IsValid(brushTarget) )
 				mode.DrawGizmos(brushTarget, brushSettings);
+
+            // foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
+            // {
+            //     if(Util.IsValid(secondaryBrushTarget))
+            //         mode.DrawGizmos(secondaryBrushTarget, brushSettings);
+            // }
         }
 
         /// <summary>
@@ -695,7 +700,7 @@ namespace UnityEditor.Polybrush
                 DoMeshRaycast(mouseRay2, brushTarget, mirrorSettings);
                 OnBrushMove();
                 SceneView.RepaintAll();
-                Repaint();
+                DoRepaint();
                 return;
             }
 
@@ -708,9 +713,18 @@ namespace UnityEditor.Polybrush
 				go = m_LastHoveredGameObject;
 				brushTarget = GetOrCreateBrushTarget(go);
 			}
-            else if (s_IgnoreUnselected || isDrag)
+            else
             {
 				GameObject cur = null;
+#if UNITY_2021_1_OR_NEWER
+                int materialIndex;
+                cur = HandleUtility.PickGameObject(mousePosition, false, null,  Selection.gameObjects, out materialIndex);
+                if(cur != null)
+                    brushTarget = GetOrCreateBrushTarget(cur);
+
+                if(brushTarget != null)
+                	go = cur;
+#else
 				int max = 0;	// safeguard against unforeseen while loop errors crashing unity
 
 				do
@@ -744,19 +758,7 @@ namespace UnityEditor.Polybrush
 						}
 					}
 				} while( go == null && cur != null && max++ < 128);
-			}
-			else
-			{
-                go = overridenGO;
-                if(go == null)
-                {
-                    go = HandleUtility.PickGameObject(mousePosition, false);
-                }
-
-                if ( go != null && PolyEditorUtility.InSelection(go))
-					brushTarget = GetOrCreateBrushTarget(go);
-				else
-					go = null;
+#endif
 			}
 
 			bool mouseHoverTargetChanged = false;
@@ -796,38 +798,77 @@ namespace UnityEditor.Polybrush
 			// target as having been changed
 			if( go != m_LastHoveredGameObject)
 			{
-				OnBrushExit(m_LastHoveredGameObject);
+                if(m_LastHoveredGameObject)
+                    OnBrushExit(m_LastHoveredGameObject);
+
+                if (m_ApplyingBrush)
+                    mode.OnBrushFinishApply(brushTarget, brushSettings);
+
 				mouseHoverTargetChanged = true;
 				m_LastHoveredGameObject = go;
+
+                foreach(var secondaryTarget in m_LastSecondaryBrushTargets)
+                 {
+                     if(!m_SecondaryBrushTargets.Contains(secondaryTarget))
+                     {
+                         OnBrushExit(secondaryTarget.gameObject);
+                         if(m_ApplyingBrush)
+                             mode.OnBrushFinishApply(brushTarget, brushSettings);
+                     }
+                 }
 			}
 
-            SceneView.RepaintAll();
-            this.Repaint();
+            if(brushTarget == null)
+            {
+                SceneView.RepaintAll();
+                DoRepaint();
 
-            if (brushTarget == null)
-				return;
+                m_LastSecondaryBrushTargets.Clear();
+                m_SecondaryBrushTargets.Clear();
+
+                return;
+            }
 
             brushSettings.isUserHoldingControl = isUserHoldingControl;
             brushSettings.isUserHoldingShift = isUserHoldingShift;
 
             if (mouseHoverTargetChanged)
 			{
+                foreach(var secondaryTarget in m_SecondaryBrushTargets)
+                {
+                    if(!m_LastSecondaryBrushTargets.Contains(secondaryTarget))
+                    {
+                        OnBrushEnter(secondaryTarget, brushSettings);
+                        if(m_ApplyingBrush)
+                            mode.OnBrushBeginApply(secondaryTarget, brushSettings);
+                    }
+                }
+
+                //The active brushtarget is the last one to notify the brush
                 OnBrushEnter(brushTarget, brushSettings);
 
 				// brush is in use, adding a new object to the undo
-				if(m_ApplyingBrush && !m_UndoQueue.Contains(go))
-				{
-					int curGroup = Undo.GetCurrentGroup();
-					brushTarget.editableObject.isDirty = true;
-					OnBrushBeginApply(brushTarget, brushSettings);
-					Undo.CollapseUndoOperations(curGroup);
-				}
-			}
+                if(m_ApplyingBrush)
+                {
+                    if(!m_UndoQueue.Contains(go))
+                    {
+                        int curGroup = Undo.GetCurrentGroup();
+                        brushTarget.editableObject.isDirty = true;
+                        OnBrushBeginApply(brushTarget, brushSettings);
+                        Undo.CollapseUndoOperations(curGroup);
+                    }
+                    else
+                        mode.OnBrushBeginApply(brushTarget, brushSettings);
+                }
+            }
 
-			OnBrushMove();
+            m_LastSecondaryBrushTargets.Clear();
+            m_LastSecondaryBrushTargets.AddRange(m_SecondaryBrushTargets);
+
+            OnBrushMove();
 
 			SceneView.RepaintAll();
-			this.Repaint();
+			DoRepaint();
 		}
 
         /// <summary>
@@ -838,6 +879,7 @@ namespace UnityEditor.Polybrush
         /// <returns>true if mouseRay hits the target, false otherwise</returns>
         bool DoMeshRaycast(Ray mouseRay, BrushTarget target, MirrorSettings mirrorSettings)
 		{
+            m_SecondaryBrushTargets.Clear();
 			if( !Util.IsValid(target) )
 				return false;
 
@@ -881,22 +923,52 @@ namespace UnityEditor.Polybrush
 
 			bool hitMesh = false;
 
-			int[] triangles = editable.editMesh.GetTriangles();
+            int[] triangles = editable.editMesh.GetTriangles();
+            foreach(Ray ray in s_Rays)
+            {
+                PolyRaycastHit hit;
 
-			foreach(Ray ray in s_Rays)
-			{
-				PolyRaycastHit hit;
+                if(PolySceneUtility.WorldRaycast(ray, editable.transform, editable.visualMesh.vertices, triangles,
+                    out hit))
+                {
+                    target.raycastHits.Add(hit);
+                    hitMesh = true;
+                }
+            }
 
-				if( PolySceneUtility.WorldRaycast(ray, editable.transform, editable.visualMesh.vertices, triangles, out hit) )
-				{
-					target.raycastHits.Add(hit);
-					hitMesh = true;
-				}
-			}
+            PolySceneUtility.CalculateWeightedVertices(target, brushSettings, tool, mode);
 
-			PolySceneUtility.CalculateWeightedVertices(target, brushSettings, tool, mode);
+            if(hitMesh && !s_LockBrushToFirst)
+            {
+                Transform[] trs = Selection.GetTransforms(SelectionMode.Unfiltered);
+                var hits = target.raycastHits;
+                foreach(var selectedTransform in trs)
+                {
+                    bool isValid = false;
+                    if(selectedTransform != editable.transform)
+                    {
+                        BrushTarget secondaryTarget = GetOrCreateBrushTarget(selectedTransform.gameObject);
+                        isValid = Util.IsValid(secondaryTarget);
+                        if(isValid)
+                        {
+                            m_SecondaryBrushTargets.Add(secondaryTarget);
+                            secondaryTarget.ClearRaycasts();
 
-			return hitMesh;
+                            foreach(var hit in hits)
+                            {
+                                PolyRaycastHit secondaryHit = new PolyRaycastHit(hit.distance,
+                                secondaryTarget.transform.InverseTransformPoint(editable.transform.TransformPoint(hit.position)),
+                                hit.normal,
+                                -1);
+                                secondaryTarget.raycastHits.Add(secondaryHit);
+                            }
+                        }
+                        PolySceneUtility.CalculateWeightedVertices(secondaryTarget, brushSettings, tool, mode);
+                    }
+                }
+            }
+
+            return hitMesh;
 		}
 
         /// <summary>
@@ -917,9 +989,15 @@ namespace UnityEditor.Polybrush
 				m_UndoQueue.Clear();
 				m_ApplyingBrush = true;
                 OnBrushBeginApply(brushTarget, brushSettings);
-			}
+
+                foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
+                    OnBrushBeginApply( secondaryBrushTarget, brushSettings);
+            }
 
 			mode.OnBrushApply(brushTarget, brushSettings);
+
+            foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
+                mode.OnBrushApply( secondaryBrushTarget, brushSettings);
 
 			SceneView.RepaintAll();
 		}
@@ -971,7 +1049,7 @@ namespace UnityEditor.Polybrush
 			}
 
 			e.Use();
-			Repaint();
+			DoRepaint();
 			SceneView.RepaintAll();
 		}
 
@@ -988,7 +1066,9 @@ namespace UnityEditor.Polybrush
             foreach (var go in toDelete)
                 m_Hovering.Remove(go);
 
+#if !UNITY_2021_1_OR_NEWER
 			m_IgnoreDrag.Clear();
+#endif
 		}
 
 		void OnBrushEnter(BrushTarget target, BrushSettings settings)
@@ -998,9 +1078,11 @@ namespace UnityEditor.Polybrush
 
 		void OnBrushMove()
 		{
-			if( Util.IsValid(brushTarget) )
-				mode.OnBrushMove( brushTarget, brushSettings );
-		}
+            foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
+                mode.OnBrushMove( secondaryBrushTarget, brushSettings);
+
+			mode.OnBrushMove( brushTarget, brushSettings );
+        }
 
 		void OnBrushExit(GameObject go)
 		{
@@ -1022,7 +1104,10 @@ namespace UnityEditor.Polybrush
 			m_ApplyingBrush = false;
 			mode.OnBrushFinishApply(brushTarget, brushSettings);
 			FinalizeAndResetHovering();
+            
+#if !UNITY_2021_1_OR_NEWER
 			m_IgnoreDrag.Clear();
+#endif
 		}
 
 		void FinalizeAndResetHovering()
@@ -1053,7 +1138,7 @@ namespace UnityEditor.Polybrush
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.RefreshEditor(false);
 #endif
-            Repaint();
+            DoRepaint();
 		}
 
         void UndoRedoPerformed()

@@ -7,66 +7,80 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Rendering;
 
 namespace UnityEditor.Polybrush
 {
     /// <summary>
     /// Draw scene view handles and gizmos.
     /// </summary>
-    internal static class PolyHandles
+    static class PolyHandles
 	{
-		private static Stack<Color> handleColorStack = new Stack<Color>();
-		private static Stack<Matrix4x4> handlesMatrix = new Stack<Matrix4x4>();
-
-		internal static void PushHandleColor()
-		{
-			handleColorStack.Push(Handles.color);
-		}
-
-		internal static void PopHandleColor()
-		{
-			Handles.color = handleColorStack.Pop();
-		}
-
-		internal static void PushMatrix()
-		{
-			handlesMatrix.Push(Handles.matrix);
-		}
-
-		internal static void PopMatrix()
-		{
-			Handles.matrix = handlesMatrix.Pop();
-		}
-
 		internal static void DrawBrush(	Vector3 point,
 										Vector3 normal,
 										BrushSettings brushSettings,
 										Matrix4x4 matrix,
 										Color innerColor,
 										Color outerColor)
-		{
-			PushHandleColor();
+        {
+            Vector3 p = matrix.MultiplyPoint3x4(point);
+            Vector3 n = matrix.inverse.MultiplyVector(normal);
 
-			Vector3 p = matrix.MultiplyPoint3x4(point);
-			Vector3 n = matrix.MultiplyVector(normal).normalized;
+            DrawBrushDisc(p, n, brushSettings.radius, brushSettings.falloff, innerColor, outerColor);
 
-			/// radius
+            // normal indicator
+            Handles.color = new Color(Mathf.Abs(n.x), Mathf.Abs(n.y), Mathf.Abs(n.z), 1f);
+            Handles.DrawLine(p, p + n.normalized * HandleUtility.GetHandleSize(p));
+        }
+
+		static void DrawBrushSphere(Vector3 p, Vector3 n, float radius, float falloff, Color innerColor, Color outerColor)
+        {
+            var ztest = Handles.zTest;
+
+			// radius
 			Handles.color = outerColor;
-			Handles.DrawWireDisc(p, n, brushSettings.radius);
+            Handles.zTest = CompareFunction.LessEqual;
+            Handles.DrawWireDisc(p, n, radius);
 
-			/// falloff
+            Handles.zTest = CompareFunction.Greater;
+			Handles.color = outerColor * .6f;
+            Handles.DrawWireDisc(p, n, radius);
+
+			// falloff
 			Handles.color = innerColor;
-			Handles.DrawWireDisc(p, n, brushSettings.radius * brushSettings.falloff);
+            Handles.zTest = CompareFunction.LessEqual;
+            DrawWireSphere(p, n, radius * falloff);
 
-			Handles.color = new Color(	Mathf.Abs(n.x),
-										Mathf.Abs(n.y),
-										Mathf.Abs(n.z),
-										1f);
+			Handles.color = innerColor * .6f;
+            Handles.zTest = CompareFunction.Greater;
+			DrawWireSphere(p, n, radius * falloff);
 
-			Handles.DrawLine(p, p + n.normalized * HandleUtility.GetHandleSize(p));
-
-			PopHandleColor();
+            Handles.zTest = ztest;
 		}
+
+		static void DrawBrushDisc(Vector3 p, Vector3 n, float radius, float falloff, Color innerColor, Color outerColor)
+        {
+            Handles.color = outerColor;
+            Handles.DrawWireDisc(p, n, radius);
+
+            Handles.color = innerColor;
+            Handles.DrawWireDisc(p, n, radius * falloff);
+        }
+
+        static void DrawWireSphere(Vector3 center, Vector3 normal, float radius)
+        {
+            Vector3 nt = normal == Vector3.up
+                ? Vector3.Cross(normal, Vector3.right)
+                : Vector3.Cross(normal, Vector3.up);
+
+            Vector3 nb = Vector3.Cross(normal, nt);
+            nt.Normalize();
+            nb.Normalize();
+
+            Handles.DrawWireDisc(center, normal,radius);
+            Handles.DrawWireDisc(center, nt,radius);
+            Handles.DrawWireDisc(center, nb,radius);
+        }
 
 		internal static void DrawScatterBrush(Vector3 point, Vector3 normal, BrushSettings settings, Matrix4x4 localToWorldMatrix)
 		{
@@ -86,11 +100,7 @@ namespace UnityEditor.Polybrush
 				Vector3 v = localToWorldMatrix.MultiplyPoint3x4(point + rotation * a);
 
 				Handles.DrawLine(v, v  + (n * .5f));
-#if UNITY_5_4_OR_LOWER
-				Handles.CubeCap(i + 2302, v, Quaternion.identity, .01f);
-#else
 				Handles.CubeHandleCap(i + 2302, v, Quaternion.identity, .01f, Event.current.type);
-#endif
 			}
 
 			/// radius

@@ -22,32 +22,62 @@ namespace UnityEngine.Polybrush
 			this.common = new PolyEdge(_cx, _cy);
 		}
 
+        /// <summary>
+        /// Equality comparer for CommonEdge
+        /// </summary>
+        /// <param name="b"> CommonEdge to compare to this</param>
+        /// <returns>true if the 2 CommonEdge are equals</returns>
 		public bool Equals(CommonEdge b)
 		{
 			return common.Equals(b.common);
 		}
 
+        /// <summary>
+        /// Equality comparer for CommonEdge
+        /// </summary>
+        /// <param name="b"> System.Object that should be compare to this</param>
+        /// <returns>true if the 2 elements are CommonEdge and are equals</returns>
 		public override bool Equals(System.Object b)
 		{
 			return b is CommonEdge && common.Equals(((CommonEdge)b).common);
 		}
 
+        /// <summary>
+        /// Equality comparer for CommonEdge with == operator
+        /// </summary>
+        /// <param name="a"> CommonEdge to compare</param>
+        /// <param name="b"> CommonEdge to compare to</param>
+        /// <returns>true if the 2 elements are equals</returns>
 		public static bool operator ==(CommonEdge a, CommonEdge b)
 		{
 			return a.Equals(b);
 		}
 
+        /// <summary>
+        /// Equality comparer for CommonEdge with != operator
+        /// </summary>
+        /// <param name="a"> CommonEdge to compare</param>
+        /// <param name="b"> CommonEdge to compare to</param>
+        /// <returns>true if the 2 elements are different</returns>
 		public static bool operator !=(CommonEdge a, CommonEdge b)
 		{
 			return !a.Equals(b);
 		}
 
+        /// <summary>
+        /// HashCode Generation
+        /// </summary>
+        /// <returns>unique hashcode for CommonEdge</returns>
 		public override int GetHashCode()
 		{
 			// http://stackoverflow.com/questions/5221396/what-is-an-appropriate-gethashcode-algorithm-for-a-2d-point-struct-avoiding
 			return common.GetHashCode();
 		}
-		
+
+        /// <summary>
+        /// Stringification of the CommonEdge data
+        /// </summary>
+        /// <returns>String representing the CommonEdge</returns>
 		public override string ToString()
 		{
 			return string.Format("{{ {{{0}:{1}}}, {{{2}:{3}}} }}", edge.x, common.x, edge.y, common.y);

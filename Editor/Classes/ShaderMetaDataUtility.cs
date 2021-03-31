@@ -268,7 +268,7 @@ namespace UnityEditor.Polybrush
 
         /// <summary>
         /// Deserialize the shader's attributes from UserData in the shader's importer.
-        /// If none exists, it returns a new AttributeLayoutContaine instance.
+        /// If none exists, it returns a new AttributeLayoutContainer instance.
         /// </summary>
         /// <param name="shader"></param>
         /// <returns></returns>
@@ -294,10 +294,10 @@ namespace UnityEditor.Polybrush
         {
             if (shader == null)
                 throw new ArgumentNullException("shader");
-            
+
             if (attributes == null)
                 throw new ArgumentNullException("attributes");
-            
+
             string path = AssetDatabase.GetAssetPath(shader);
             AssetImporter importer = AssetImporter.GetAtPath(path);
 

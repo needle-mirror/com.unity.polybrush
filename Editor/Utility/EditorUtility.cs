@@ -233,6 +233,8 @@ namespace UnityEditor.Polybrush
                 return null;
             }
             AssetDatabase.CreateAsset(asset, assetPath);
+            AssetDatabase.Refresh();
+
             return asset;
         }
 

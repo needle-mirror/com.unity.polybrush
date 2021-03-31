@@ -10,6 +10,10 @@ using UnityEngine;
 /// </summary>
 public class PolyAsset : ScriptableObject
 {
+    /// <summary>
+    /// Reset() function so that when you reset Polybrush Assets
+    /// from the inspector they don't loose their name
+    /// </summary>
     protected virtual void Reset()
     {
         string path = AssetDatabase.GetAssetPath(this.GetInstanceID());

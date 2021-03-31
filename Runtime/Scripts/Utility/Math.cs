@@ -11,9 +11,9 @@ namespace UnityEngine.Polybrush
     /// </summary>
     public static class Math
     {
-        /// <value>
+        /// <summary>
         /// Pi / 2.
-        /// </value>
+        /// </summary>
         public const float phi = 1.618033988749895f;
 
         /// <summary>
@@ -420,11 +420,18 @@ namespace UnityEngine.Polybrush
             Vector3 vert0,
             Vector3 vert1,
             Vector3 vert2,
-            ref float distance,
-            ref Vector3 normal)
+            out float distance,
+            out Vector3 normal)
         {
             Math.Subtract(vert0, vert1, ref tv1);
             Math.Subtract(vert0, vert2, ref tv2);
+
+            normal = Vector3.Cross(tv1, tv2);
+            distance = 0f;
+
+            // backface culling
+            if (Vector3.Dot(dir, normal) > 0)
+                return false;
 
             Math.Cross(dir, tv2, ref tv4);
             float det = Vector3.Dot(tv1, tv4);
@@ -447,9 +454,9 @@ namespace UnityEngine.Polybrush
                 return false;
 
             distance = Vector3.Dot(tv2, tv4) * (1f / det);
-            Math.Cross(tv1, tv2, ref normal);
 
-            return true;
+            // no hit if point is behind the ray origin
+            return distance > 0f;
         }
 
         /// <summary>
@@ -524,225 +531,6 @@ namespace UnityEngine.Polybrush
                 return new Vector3(0f, 0f, 0f); // bad triangle
 
             return cross.normalized;
-        }
-
-        /// <summary>
-        /// Is the direction within epsilon of Up, Down, Left, Right, Forward, or Backwards?
-        /// </summary>
-        /// <param name="v"></param>
-        /// <param name="epsilon"></param>
-        /// <returns></returns>
-        internal static bool IsCardinalAxis(Vector3 v, float epsilon = k_FltEpsilon)
-        {
-            if (v == Vector3.zero)
-                return false;
-
-            v.Normalize();
-
-            return (1f - Mathf.Abs(Vector3.Dot(Vector3.up, v))) < epsilon ||
-                (1f - Mathf.Abs(Vector3.Dot(Vector3.forward, v))) < epsilon ||
-                (1f - Mathf.Abs(Vector3.Dot(Vector3.right, v))) < epsilon;
-        }
-
-        /// <summary>
-        /// Component-wise division.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <param name="o"></param>
-        /// <returns></returns>
-        internal static Vector2 DivideBy(this Vector2 v, Vector2 o)
-        {
-            return new Vector2(v.x / o.x, v.y / o.y);
-        }
-
-        /// <summary>
-        /// Component-wise division.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <param name="o"></param>
-        /// <returns></returns>
-        internal static Vector3 DivideBy(this Vector3 v, Vector3 o)
-        {
-            return new Vector3(v.x / o.x, v.y / o.y, v.z / o.z);
-        }
-
-        /// <summary>
-        /// Find the largest value in an array.
-        /// </summary>
-        /// <param name="array"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        internal static T Max<T>(T[] array) where T : System.IComparable<T>
-        {
-            if (array == null || array.Length < 1)
-                return default(T);
-
-            T max = array[0];
-            for (int i = 1; i < array.Length; i++)
-                if (array[i].CompareTo(max) >= 0)
-                    max = array[i];
-            return max;
-        }
-
-        /// <summary>
-        /// Find the smallest value in an array.
-        /// </summary>
-        /// <param name="array"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        internal static T Min<T>(T[] array) where T : System.IComparable<T>
-        {
-            if (array == null || array.Length < 1)
-                return default(T);
-
-            T min = array[0];
-            for (int i = 1; i < array.Length; i++)
-                if (array[i].CompareTo(min) < 0)
-                    min = array[i];
-            return min;
-        }
-
-        /// <summary>
-        /// Return the largest axis in a Vector3.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <returns></returns>
-        internal static float LargestValue(Vector3 v)
-        {
-            if (v.x > v.y && v.x > v.z) return v.x;
-            if (v.y > v.x && v.y > v.z) return v.y;
-            return v.z;
-        }
-
-        /// <summary>
-        /// Return the largest axis in a Vector2.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <returns></returns>
-        internal static float LargestValue(Vector2 v)
-        {
-            return (v.x > v.y) ? v.x : v.y;
-        }
-
-        /// <summary>
-        /// The smallest X and Y value found in an array of Vector2. May or may not belong to the same Vector2.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <returns></returns>
-        internal static Vector2 SmallestVector2(Vector2[] v)
-        {
-            int len = v.Length;
-            Vector2 l = v[0];
-            for (int i = 0; i < len; i++)
-            {
-                if (v[i].x < l.x) l.x = v[i].x;
-                if (v[i].y < l.y) l.y = v[i].y;
-            }
-            return l;
-        }
-
-        /// <summary>
-        /// The smallest X and Y value found in an array of Vector2. May or may not belong to the same Vector2.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <param name="indexes">Indexes of v array to test.</param>
-        /// <returns></returns>
-        internal static Vector2 SmallestVector2(Vector2[] v, int[] indexes)
-        {
-            int len = indexes.Length;
-            Vector2 l = v[indexes[0]];
-            for (int i = 0; i < len; i++)
-            {
-                if (v[indexes[i]].x < l.x) l.x = v[indexes[i]].x;
-                if (v[indexes[i]].y < l.y) l.y = v[indexes[i]].y;
-            }
-            return l;
-        }
-
-        /// <summary>
-        /// The largest X and Y value in an array.  May or may not belong to the same Vector2.
-        /// </summary>
-        /// <param name="v"></param>
-        /// <returns></returns>
-        internal static Vector2 LargestVector2(Vector2[] v)
-        {
-            int len = v.Length;
-            Vector2 l = v[0];
-            for (int i = 0; i < len; i++)
-            {
-                if (v[i].x > l.x) l.x = v[i].x;
-                if (v[i].y > l.y) l.y = v[i].y;
-            }
-            return l;
-        }
-
-        internal static Vector2 LargestVector2(Vector2[] v, int[] indexes)
-        {
-            int len = indexes.Length;
-            Vector2 l = v[indexes[0]];
-            for (int i = 0; i < len; i++)
-            {
-                if (v[indexes[i]].x > l.x) l.x = v[indexes[i]].x;
-                if (v[indexes[i]].y > l.y) l.y = v[indexes[i]].y;
-            }
-            return l;
-        }
-
-        /// <summary>
-        /// Creates an AABB with a set of vertices.
-        /// </summary>
-        /// <param name="positions"></param>
-        /// <returns></returns>
-        internal static Bounds GetBounds(Vector3[] positions, IList<int> indices = null)
-        {
-            bool hasIndices = indices != null;
-
-            if ((hasIndices && indices.Count < 1) || positions.Length < 1)
-                return default(Bounds);
-
-            Vector3 min = positions[hasIndices ? indices[0] : 0];
-            Vector3 max = min;
-
-            if (hasIndices)
-            {
-                for (int i = 1, c = indices.Count; i < c; i++)
-                {
-                    min.x = Mathf.Min(positions[indices[i]].x, min.x);
-                    max.x = Mathf.Max(positions[indices[i]].x, max.x);
-
-                    min.y = Mathf.Min(positions[indices[i]].y, min.y);
-                    max.y = Mathf.Max(positions[indices[i]].y, max.y);
-
-                    min.z = Mathf.Min(positions[indices[i]].z, min.z);
-                    max.z = Mathf.Max(positions[indices[i]].z, max.z);
-                }
-            }
-            else
-            {
-                for (int i = 1, c = positions.Length; i < c; i++)
-                {
-                    min.x = Mathf.Min(positions[i].x, min.x);
-                    max.x = Mathf.Max(positions[i].x, max.x);
-
-                    min.y = Mathf.Min(positions[i].y, min.y);
-                    max.y = Mathf.Max(positions[i].y, max.y);
-
-                    min.z = Mathf.Min(positions[i].z, min.z);
-                    max.z = Mathf.Max(positions[i].z, max.z);
-                }
-            }
-
-            return new Bounds((min + max) * .5f, max - min);
-        }
-
-        static Vector3 ComponentMin(Vector3 a, Vector3 b)
-        {
-            return new Vector3(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Min(a.z, b.z));
-        }
-
-        static Vector3 ComponentMax(Vector3 a, Vector3 b)
-        {
-            return new Vector3(Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y), Mathf.Max(a.z, b.z));
         }
 
         /// <summary>
@@ -837,6 +625,12 @@ namespace UnityEngine.Polybrush
             return sum / len;
         }
 
+        /// <summary>
+        /// Average a set of Vector4.
+        /// </summary>
+        /// <param name="v">The collection from which to select indices.</param>
+        /// <param name="indexes">The indexes to use to compute the average value</param>
+        /// <returns>Average Vector4 from selected values</returns>
         public static Vector4 Average(IList<Vector4> v, IList<int> indexes = null)
         {
             if (v == null)
@@ -1083,7 +877,7 @@ namespace UnityEngine.Polybrush
         {
             return a > b ? a : b;
         }
-        
+
         internal static bool IsNumber(float value)
         {
             return !(float.IsInfinity(value) || float.IsNaN(value));

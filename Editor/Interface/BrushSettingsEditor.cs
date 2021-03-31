@@ -75,7 +75,7 @@ namespace UnityEditor.Polybrush
 
                         brushRadiusMax.floatValue = PolyGUILayout.FloatField(m_GCRadiusMax, brushRadiusMax.floatValue);
                         brushRadiusMax.floatValue = Mathf.Clamp(brushRadiusMax.floatValue, brushRadiusMin.floatValue + .001f, k_BrushSizeMaxValue);
-                        
+
                         allowNonNormalizedFalloff.boolValue = PolyGUILayout.Toggle(m_GCAllowUnclampedFalloff, allowNonNormalizedFalloff.boolValue);
                     }
                 }
@@ -148,22 +148,22 @@ namespace UnityEditor.Polybrush
 			return null;
 		}
 
-        static internal BrushSettings LoadBrushSettingsAssets(string assetName)
+        static internal BrushSettings LoadBrushSettingsAssets(string guid)
         {
             BrushSettings settings;
-            settings = AssetDatabase.LoadAssetAtPath<BrushSettings>(AssetDatabase.GUIDToAssetPath(EditorPrefs.GetString(assetName, "")));
-
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            settings = AssetDatabase.LoadAssetAtPath<BrushSettings>(path);
             return settings;
         }
 
-        static internal IReadOnlyCollection<BrushSettings> GetAvailableBrushes()
+        static internal BrushSettings[] GetAvailableBrushes()
         {
             List<BrushSettings> brushes = PolyEditorUtility.GetAll<BrushSettings>();
 
             if (brushes.Count < 1)
                 brushes.Add(PolyEditorUtility.GetFirstOrNew<BrushSettings>());
 
-            return brushes;
+            return brushes.ToArray();
         }
     }
 }

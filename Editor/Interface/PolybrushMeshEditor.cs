@@ -34,6 +34,9 @@ namespace UnityEditor.Polybrush
             };
         }
 
+        /// <summary>
+        /// Overriding function to make a custom IMGUI inspector.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             PolybrushMesh polybrushmesh = target as PolybrushMesh;

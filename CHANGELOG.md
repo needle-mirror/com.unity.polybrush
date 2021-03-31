@@ -5,17 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.1.0-pre.1] - 2020-11-19
+## [1.1.2] - 2021-03-31
 
 ### Features
 
 - Added new Simple Texture Blend shader example.
-- [case: 1197102] Adding support for painting on multiple meshes 
 - Adding better support for prefab painting in 2D mode (placement and removal)
+- [case: 1197102] Adding support for painting on multiple meshes.
+
+### Changes
+
+- Improved performance improvement when drawing wireframe and gizmos.
+- Removed obsolete "Lock Brush to First" preference.
 
 ### Bug Fixes
 
-- [case: 1271427] Improving UpdateBrush performances, reducing calls to repaint method  
+- [case: 1324105] Fixing _Albedo1 texture in SRP shaders for texture painting.
+- [case: 1324106] Fixing problems in ProBuilderBridge functions and updates.
+- [case: 1322672] Fixing mesh collider update when modifying polybrush mesh topology.
+- [case: 1316957] Fixing errors when painting textures in the UV channels.
+- Fixed brush gizmo not showing the correct orientation in raise/lower and smooth modes.
+- Fixed wireframe not updating when applying changes in sculpting modes.
+- [case: 1314295] Fixing polybrush prefab painting with flat curve causing crash.
+- [case: 1306986] Fixed brush not registering correct placement when inside a concave mesh.
+- [case: 1315475] Fixed warning when opening Polybrush for the first time and pressing "Save" brush settings.
+- [case: 1314249] Fixing Undo on painting texture mode.
+- [case: 1305101] Fixing brush list not updated on new brush creation.
+- [case: 1305738] Fixing "Bake vertex stream" functionality.
+- [case: 1271427] Improving UpdateBrush performances, reducing calls to repaint method
 - [case: 1268586] Fixed erase problem when painting/removing prefabs where the pivot was too far from the brush
 - [case: 1271799] Fixed broken Copy/Paste of Prefab Settings
 - [case: 1270029] Fixed color palette does not disappear when dragged outside editor window.
@@ -419,13 +436,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Migrate project to Github.  For access to the latest development builds of Polybrush please email contact@procore3d.com with your invoice number and request Git access (this will be automated in the future).
 
-## [0.9.1-preview.1]
+## [0.9.1-preview.1] - 2016-01-01
 
 ## Bug Fixes
 
 - Register children of current selection as valid mesh editables.  Fixes potential confusion when a model prefab is selected at it's root with children.
 
-## [0.9.1-preview.0]
+## [0.9.1-preview.0] - 2015-12-01
 
 ### Features
 
@@ -449,6 +466,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Standard Vertex Color and Standard Texture Blend shaders now default to metallic / roughness workflow.
 
-## [0.9.0-preview.0]
+## [0.9.0-preview.0] - 2015-11-01
 
 Initial Release.

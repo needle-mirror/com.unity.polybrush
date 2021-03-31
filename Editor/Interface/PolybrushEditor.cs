@@ -1,5 +1,4 @@
-﻿#define PROBUILDER_4_0_OR_NEWER
-//#define POLYBRUSH_DEBUG
+﻿//#define POLYBRUSH_DEBUG
 
 using UnityEngine;
 using System.Collections.Generic;
@@ -29,12 +28,6 @@ namespace UnityEditor.Polybrush
         static readonly Vector2 k_EditorWindowMinimumSize = new Vector2(320, 180);
 
         static List<Ray> s_Rays = new List<Ray>();
-
-        /// <summary>
-        /// Set true to lock brush to the object it starts to apply on.
-        /// </summary>
-        [UserSetting("General Settings", "Lock Brush to First", "When applying a brush this prevents any other mesh from intercepting the stroke.  Disable this if you want to apply across multiple meshes.")]
-        internal static Pref<bool> s_LockBrushToFirst = new Pref<bool>("Brush.LockBrushToFirstObject", true, SettingsScope.Project);
 
         /// <summary>
         /// Set true to have Polybrush window in floating mode (no dockable).
@@ -67,7 +60,7 @@ namespace UnityEditor.Polybrush
         Dictionary<GameObject, BrushTarget> m_Hovering = new Dictionary<GameObject, BrushTarget>();
         GameObject m_LastHoveredGameObject = null;
         int m_CurrentBrushIndex = 0;
-        IReadOnlyCollection<BrushSettings> m_AvailableBrushes = null;
+        BrushSettings[] m_AvailableBrushes = null;
         string[] m_AvailableBrushesStrings = null;
 
         // Keep track of the objects that have been registered for undo, allowing the editor to
@@ -164,10 +157,8 @@ namespace UnityEditor.Polybrush
 
             m_BrushMirrorEditor = new MirrorSettingsEditor();
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.SubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
-#endif
 
             m_GCToolmodeIcons = new GUIContent[]
             {
@@ -188,8 +179,8 @@ namespace UnityEditor.Polybrush
 			// force update the preview
 			m_LastHoveredGameObject = null;
 
+            RefreshAvailableBrushList();
 			EnsureBrushSettingsListIsValid();
-            PopulateAvailableBrushList();
 
             SetTool(BrushTool.RaiseLower, false);
 
@@ -208,10 +199,8 @@ namespace UnityEditor.Polybrush
             Undo.undoRedoPerformed -= UndoRedoPerformed;
             //EditorApplication.hierarchyWindowItemOnGUI -= OnHierarchyWindowItemChanged;
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.UnsubscribeToSelectModeChanged(OnProBuilderSelectModeChanged);
-#endif
 
             // store local changes to brushSettings
             if (brushSettings != null)
@@ -231,14 +220,11 @@ namespace UnityEditor.Polybrush
 		{
 			SetTool(BrushTool.None);
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.Object);
-#endif
 
             foreach (BrushMode m in modes)
 				GameObject.DestroyImmediate(m);
-
 
             if (brushSettings != null)
                 GameObject.DestroyImmediate(brushSettings);
@@ -252,15 +238,6 @@ namespace UnityEditor.Polybrush
 			if(PolybrushEditor.instance != null)
 				PolybrushEditor.instance.m_WantsRepaint = true;
 		}
-
-        void PopulateAvailableBrushList()
-        {
-            m_AvailableBrushes = BrushSettingsEditor.GetAvailableBrushes();
-            m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
-            m_CurrentBrushIndex = System.Math.Max(Array.FindIndex<string>(m_AvailableBrushesStrings, x => x == brushSettings.name), 0);
-            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, string.Empty);
-            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, "Add Brush...");
-        }
 
         void OnGUI()
 		{
@@ -359,7 +336,7 @@ namespace UnityEditor.Polybrush
 
                     if (EditorGUI.EndChangeCheck())
                     {
-                        if (m_CurrentBrushIndex >= m_AvailableBrushes.Count)
+                        if(m_CurrentBrushIndex >= m_AvailableBrushes.Length)
                             SetBrushSettings(BrushSettingsEditor.AddNew(brushSettings));
                         else
                             SetBrushSettings(m_AvailableBrushes.ElementAt<BrushSettings>(m_CurrentBrushIndex));
@@ -441,10 +418,8 @@ namespace UnityEditor.Polybrush
 			if(brushTool == tool && mode != null)
 				return;
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.SetSelectMode(ProBuilderBridge.SelectMode.Object);
-#endif
 
             if(mode != null)
 			{
@@ -484,17 +459,35 @@ namespace UnityEditor.Polybrush
 		}
 
         /// <summary>
+        /// Updates the current available brushes to update the dropdown list.
+        /// </summary>
+        void RefreshAvailableBrushList()
+        {
+            m_AvailableBrushes = BrushSettingsEditor.GetAvailableBrushes();
+            m_AvailableBrushesStrings = m_AvailableBrushes.Select(x => x.name).ToArray();
+            var brushSettingsName = brushSettings != null ? brushSettings.name :
+                                         (EditorPrefs.HasKey(k_BrushSettingsName) ?
+                                          EditorPrefs.GetString(k_BrushSettingsName) :
+                                          String.Empty);
+            m_CurrentBrushIndex = System.Math.Max(Array.FindIndex<string>(m_AvailableBrushesStrings,
+                x => x == brushSettingsName),0);
+            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, string.Empty);
+            ArrayUtility.Add<string>(ref m_AvailableBrushesStrings, "Add Brush...");
+        }
+
+        /// <summary>
         /// Makes sure we always have a valid BrushSettings selected in Polybrush then refresh the available list for the EditorWindow.
         /// Will create a new file if it cannot find any.
         /// </summary>
 		internal void EnsureBrushSettingsListIsValid()
 		{
+            VerifyLoadedBrushAssetsIntegrity();
             if (brushSettings == null)
             {
                 if (brushSettingsAsset == null)
                     brushSettingsAsset = BrushSettingsEditor.LoadBrushSettingsAssets(EditorPrefs.GetString(k_BrushSettingsAssetPref, ""));
 
-                if (EditorPrefs.HasKey(k_BrushSettingsPref))
+                if (EditorPrefs.HasKey(k_BrushSettingsPref) && brushSettingsAsset != null)
                 {
                     brushSettings = ScriptableObject.CreateInstance<BrushSettings>();
                     JsonUtility.FromJsonOverwrite(EditorPrefs.GetString(k_BrushSettingsPref), brushSettings);
@@ -505,6 +498,24 @@ namespace UnityEditor.Polybrush
                 {
                     SetBrushSettings(brushSettingsAsset != null ? brushSettingsAsset : PolyEditorUtility.GetFirstOrNew<BrushSettings>());
                 }
+            }
+        }
+
+        /// <summary>
+        /// Verify if all loaded assets haven't been touched by users.
+        /// If one or multiples assets are missing, refresh the Palettes list and loadouts.
+        /// </summary>
+        void VerifyLoadedBrushAssetsIntegrity()
+        {
+            if (m_AvailableBrushes != null && m_AvailableBrushes.Length > 0 &&
+                !System.Array.TrueForAll(m_AvailableBrushes, x => x != null))
+            {
+                RefreshAvailableBrushList();
+                m_CurrentBrushIndex = 0;
+                if (m_AvailableBrushes.Length > 0)
+                    SetBrushSettings(m_AvailableBrushes[m_CurrentBrushIndex]);
+                else
+                    SetBrushSettings(BrushSettingsEditor.AddNew(brushSettings));
             }
         }
 
@@ -532,6 +543,8 @@ namespace UnityEditor.Polybrush
 			brushSettingsAsset = settings;
 			brushSettings = settings.DeepCopy();
 			brushSettings.hideFlags = HideFlags.HideAndDontSave;
+
+            RefreshAvailableBrushList();
 		}
 
 		void OnSceneGUI(SceneView sceneView)
@@ -621,10 +634,12 @@ namespace UnityEditor.Polybrush
                         UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
                     }
                     break;
-            }
 
-			if( Util.IsValid(brushTarget) )
-				mode.DrawGizmos(brushTarget, brushSettings);
+                case EventType.Repaint:
+                    if( Util.IsValid(brushTarget) )
+                        mode.DrawGizmos(brushTarget, brushSettings);
+                    break;
+            }
 
             // foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
             // {
@@ -692,74 +707,55 @@ namespace UnityEditor.Polybrush
         internal void UpdateBrush(Vector2 mousePosition, bool isUserHoldingControl = false, bool isUserHoldingShift = false, bool isDrag = false, GameObject overridenGO = null, Ray? overridenRay = null)
 		{
             MirrorSettings mirrorSettings = m_BrushMirrorEditor.settings;
-            // NOTE: Quick fix for the lockBrushToFirst feature, probably need to refactor
-            // some code in order to be able to do it properly
-            if(firstGameObject != null && s_LockBrushToFirst)
-            {
-                Ray mouseRay2 = overridenRay != null ? (Ray)overridenRay : HandleUtility.GUIPointToWorldRay(mousePosition);
-                DoMeshRaycast(mouseRay2, brushTarget, mirrorSettings);
-                OnBrushMove();
-                SceneView.RepaintAll();
-                DoRepaint();
-                return;
-            }
 
 			// Must check HandleUtility.PickGameObject only during MouseMoveEvents or errors will rain.
 			GameObject go = null;
 			brushTarget = null;
+			GameObject cur = null;
 
-            if (isDrag && s_LockBrushToFirst && m_LastHoveredGameObject != null)
-            {
-				go = m_LastHoveredGameObject;
-				brushTarget = GetOrCreateBrushTarget(go);
-			}
-            else
-            {
-				GameObject cur = null;
 #if UNITY_2021_1_OR_NEWER
-                int materialIndex;
-                cur = HandleUtility.PickGameObject(mousePosition, false, null,  Selection.gameObjects, out materialIndex);
-                if(cur != null)
-                    brushTarget = GetOrCreateBrushTarget(cur);
+            int materialIndex;
+            cur = HandleUtility.PickGameObject(mousePosition, false, null,  Selection.gameObjects, out materialIndex);
+            if(cur != null)
+                brushTarget = GetOrCreateBrushTarget(cur);
 
-                if(brushTarget != null)
-                	go = cur;
+            if(brushTarget != null)
+                go = cur;
 #else
-				int max = 0;	// safeguard against unforeseen while loop errors crashing unity
+			int max = 0;	// safeguard against unforeseen while loop errors crashing unity
 
-				do
+			do
+			{
+				int tmp;
+                // overloaded PickGameObject ignores array of GameObjects, this is used
+                // when there are non-selected gameObjects between the mouse and selected
+                // gameObjects.
+                cur = overridenGO;
+                if (cur == null)
+                {
+                    m_IgnoreDrag.RemoveAll(x => x == null);
+                    cur = HandleUtility.PickGameObject(mousePosition, m_IgnoreDrag.ToArray(), out tmp);
+                }
+
+                if (cur != null)
 				{
-					int tmp;
-                    // overloaded PickGameObject ignores array of GameObjects, this is used
-                    // when there are non-selected gameObjects between the mouse and selected
-                    // gameObjects.
-                    cur = overridenGO;
-                    if (cur == null)
-                    {
-                        m_IgnoreDrag.RemoveAll(x => x == null);
-                        cur = HandleUtility.PickGameObject(mousePosition, m_IgnoreDrag.ToArray(), out tmp);
-                    }
-
-                    if (cur != null)
+                    if ( !PolyEditorUtility.InSelection(cur) )
 					{
-                        if ( !PolyEditorUtility.InSelection(cur) )
-						{
-							if(!m_IgnoreDrag.Contains(cur))
-								m_IgnoreDrag.Add(cur);
-						}
-						else
-						{
-							brushTarget = GetOrCreateBrushTarget(cur);
-
-							if(brushTarget != null)
-								go = cur;
-							else
-								m_IgnoreDrag.Add(cur);
-						}
+						if(!m_IgnoreDrag.Contains(cur))
+							m_IgnoreDrag.Add(cur);
 					}
-				} while( go == null && cur != null && max++ < 128);
+					else
+					{
+						brushTarget = GetOrCreateBrushTarget(cur);
+
+						if(brushTarget != null)
+							go = cur;
+						else
+							m_IgnoreDrag.Add(cur);
+					}
+				}
+			} while( go == null && cur != null && max++ < 128);
 #endif
-			}
 
 			bool mouseHoverTargetChanged = false;
             Ray mouseRay = overridenRay != null ? (Ray)overridenRay :  HandleUtility.GUIPointToWorldRay(mousePosition);
@@ -784,13 +780,8 @@ namespace UnityEditor.Polybrush
 			{
                 if (!DoMeshRaycast(mouseRay, brushTarget, mirrorSettings))
                 {
-					if(!isDrag || !s_LockBrushToFirst)
-					{
-						go = null;
-						brushTarget = null;
-					}
-
-					return;
+                    brushTarget = null;
+                    return;
 				}
 			}
 
@@ -807,15 +798,15 @@ namespace UnityEditor.Polybrush
 				mouseHoverTargetChanged = true;
 				m_LastHoveredGameObject = go;
 
-                foreach(var secondaryTarget in m_LastSecondaryBrushTargets)
-                 {
-                     if(!m_SecondaryBrushTargets.Contains(secondaryTarget))
-                     {
-                         OnBrushExit(secondaryTarget.gameObject);
-                         if(m_ApplyingBrush)
-                             mode.OnBrushFinishApply(brushTarget, brushSettings);
-                     }
-                 }
+                foreach (var secondaryTarget in m_LastSecondaryBrushTargets)
+                {
+                    if (!m_SecondaryBrushTargets.Contains(secondaryTarget))
+                    {
+                        OnBrushExit(secondaryTarget.gameObject);
+                        if (m_ApplyingBrush)
+                            mode.OnBrushFinishApply(brushTarget, brushSettings);
+                    }
+                }
 			}
 
             if(brushTarget == null)
@@ -938,7 +929,7 @@ namespace UnityEditor.Polybrush
 
             PolySceneUtility.CalculateWeightedVertices(target, brushSettings, tool, mode);
 
-            if(hitMesh && !s_LockBrushToFirst)
+            if(hitMesh)
             {
                 Transform[] trs = Selection.GetTransforms(SelectionMode.Unfiltered);
                 var hits = target.raycastHits;
@@ -1104,7 +1095,7 @@ namespace UnityEditor.Polybrush
 			m_ApplyingBrush = false;
 			mode.OnBrushFinishApply(brushTarget, brushSettings);
 			FinalizeAndResetHovering();
-            
+
 #if !UNITY_2021_1_OR_NEWER
 			m_IgnoreDrag.Clear();
 #endif
@@ -1134,10 +1125,9 @@ namespace UnityEditor.Polybrush
 			brushTarget = null;
 			m_LastHoveredGameObject = null;
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 ProBuilderBridge.RefreshEditor(false);
-#endif
+
             DoRepaint();
 		}
 

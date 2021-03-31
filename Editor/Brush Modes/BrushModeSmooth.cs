@@ -147,11 +147,8 @@ namespace UnityEditor.Polybrush
             }
 
             mesh.vertices = data.vertices;
-
-            if(tempComponent != null)
-                tempComponent.OnVerticesMoved(mesh);
-
             base.OnBrushApply(target, settings);
+            UpdateWireframe(target, settings);
         }
 
         /// <summary>
@@ -169,7 +166,7 @@ namespace UnityEditor.Polybrush
             int vertexCount = mesh.vertexCount;
             Vector3[] normals = (s_SmoothDirection == PolyDirection.BrushNormal) ? mesh.normals : null;
 
-            List <Vector3> brushNormalOnBeginApply= BrushNormalsOnBeginApply(target.editableObject);
+            List <Vector3> brushNormalOnBeginApply = BrushNormalsOnBeginApply(target.editableObject);
             var data = m_EditableObjectsData[target.editableObject];
 
             // don't use target.GetAllWeights because brush normal needs
@@ -212,7 +209,12 @@ namespace UnityEditor.Polybrush
                     normal = hit.normal;
                 }
 
-                PolyHandles.DrawBrush(hit.position, normal, settings, target.localToWorldMatrix, innerColor, outerColor);
+                PolyHandles.DrawBrush(hit.position,
+                    normal,
+                    settings,
+                    target.localToWorldMatrix,
+                    innerColor,
+                    outerColor);
             }
         }
     }

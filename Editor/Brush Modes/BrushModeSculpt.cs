@@ -198,6 +198,10 @@ namespace UnityEditor.Polybrush
                 return;
 
             OverlayRenderer ren = target.gameObjectAttached.AddComponent<OverlayRenderer>();
+            ren.hideFlags = HideFlags.DontSave
+                | HideFlags.NotEditable
+                | HideFlags.HideInInspector
+                | HideFlags.HideInHierarchy;
 			ren.SetMesh(target.editMesh);
 
             ren.fullColor = s_FullStrengthColor;
@@ -223,6 +227,22 @@ namespace UnityEditor.Polybrush
             {
                 if(data.TempComponent != null)
                 	((OverlayRenderer)data.TempComponent).SetWeights(target.GetAllWeights(), settings.strength);
+            }
+		}
+
+		protected void UpdateWireframe(BrushTarget target, BrushSettings settings)
+        {
+            if(!Util.IsValid(target))
+                return;
+
+            if(m_EditableObjectsData.TryGetValue(target.editableObject, out EditableObjectData data))
+            {
+                if(data.TempComponent != null)
+                	data.TempComponent.OnVerticesMoved(target.editableObject.editMesh);
+
+                //Might be costly to do that on every wireframe update
+                if(ProBuilderBridge.ProBuilderExists() && target.editableObject.isProBuilderObject)
+                    ProBuilderBridge.RefreshEditor(false);
             }
 		}
 	}

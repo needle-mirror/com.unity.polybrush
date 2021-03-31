@@ -45,7 +45,6 @@ namespace UnityEditor.Polybrush
 
         Dictionary<EditableObject,EditableObjectData> m_EditableObjectsData = new Dictionary<EditableObject, EditableObjectData>();
 
-
 		internal override void DrawGUI(BrushSettings settings)
 		{
 			base.DrawGUI(settings);
@@ -162,12 +161,11 @@ namespace UnityEditor.Polybrush
 			mesh.vertices = data.Vertices;
             target.editableObject.modifiedChannels |= MeshChannel.Position;
 
-			// different than setting weights on temp component,
-			// which is what BrushModeMesh.OnBrushApply does.
-			if(tempComponent != null)
-				tempComponent.OnVerticesMoved(mesh);
-
 			base.OnBrushApply(target, settings);
+
+            // different than setting weights on temp component,
+            // which is what BrushModeMesh.OnBrushApply does.
+            UpdateWireframe(target, settings);
 		}
 
         /// <summary>
@@ -194,6 +192,7 @@ namespace UnityEditor.Polybrush
                 switch (s_RaiseLowerDirection.value)
                 {
                     case PolyDirection.BrushNormal:
+                    case PolyDirection.VertexNormal:
                         {
                             if (s_UseFirstNormalVector && brushNormalOnBeginApply.Count > ri)
                                 normal = brushNormalOnBeginApply[ri];
@@ -206,35 +205,16 @@ namespace UnityEditor.Polybrush
                             normal = DirectionUtil.ToVector3(s_RaiseLowerDirection);
                         }
                         break;
-                    case PolyDirection.VertexNormal:
-                        {
-                            //For vertex normal mode we take the vertex with the highest weight to compute the normal
-                            //if non has enough we take the hit normal.
-                            float highestWeight = .0001f;
-                            int highestIndex = -1;
-                            for (int i = 0; i < data.CommonVertexCount; i++)
-                            {
-                                int index = data.CommonVertices[i][0];
-
-                                if (hit.weights[index] < .0001f || (s_IgnoreOpenEdges && ContainsIndexInNonManifoldIndices(target.editableObject,index)))
-                                    continue;
-
-                                if (hit.weights[index] > highestWeight)
-                                {
-                                    highestIndex = index;
-                                }
-                            }
-
-                            if (highestIndex != -1)
-                            {
-                                normal = data.NormalLookup[highestIndex];
-                            }
-                        }
-                        break;
                 };
 
                 normal = settings.isUserHoldingControl ? normal * -1f : normal;
-                PolyHandles.DrawBrush(hit.position, normal, settings, target.localToWorldMatrix, innerColor, outerColor);
+
+                PolyHandles.DrawBrush(hit.position,
+                    normal,
+                    settings,
+                    target.localToWorldMatrix,
+                    innerColor,
+                    outerColor);
             }
         }
     }

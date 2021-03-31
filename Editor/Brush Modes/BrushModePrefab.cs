@@ -345,21 +345,36 @@ namespace UnityEditor.Polybrush
 			a.x = Mathf.Cos(rad);
 			a.y = Mathf.Sin(rad);
 
-			float r = Mathf.Sqrt(Random.Range(0f, 1f));
+            //The curve is not valid is all weights are at 0 with a flat curve
+            bool isCurveValid = false;
+            for(int keyIndex = 0; keyIndex < curve.length && !isCurveValid; keyIndex++)
+            {
+                isCurveValid |= curve[keyIndex].value > 0;
+                isCurveValid |= keyIndex != 0 ? curve[keyIndex].inTangent != 0 : isCurveValid;
+                isCurveValid |= keyIndex != curve.length-1 ? curve[keyIndex].outTangent != 0 : isCurveValid;
+            }
+
+            float r;
+            if(!isCurveValid)
+            {
+                //In the case the curve isn't valid, only sample within the falloff range
+                r = Mathf.Sqrt(Random.Range(0f, falloff));
+
+                a = position + (rotation * (a.normalized * r * radius));
+                return new Ray(a + normal * 10f, -normal);
+            }
 
 			while(true)
 			{
-				// this isn't great
-				if(r < falloff || Random.Range(0f, 1f) > Mathf.Clamp(curve.Evaluate( 1f - ((r - falloff) / (1f - falloff))), 0f, 1f))
-				{
-					a = position + (rotation * (a.normalized * r * radius));
-					return new Ray(a + normal * 10f, -normal);
-				}
-				else
-				{
-					r = Mathf.Sqrt(Random.Range(0f, 1f));
-				}
-			}
+                // this isn't great
+                r = Mathf.Sqrt(Random.Range(0f, 1f));
+                if(r < falloff ||
+                   Random.Range(0f, 1f) < Mathf.Clamp(curve.Evaluate( ( r - falloff ) / ( 1f - falloff ) ), 0f, 1f))
+                {
+                    a = position + (rotation * (a.normalized * r * radius));
+                    return new Ray(a + normal * 10f, -normal);
+                }
+            }
 		}
 
 		PrefabAndSettings GetPrefab()

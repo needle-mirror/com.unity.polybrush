@@ -137,14 +137,14 @@ namespace UnityEditor.Polybrush
 
 			if(applyToCurrent)
 			{
-				CreateCompositeMesh(source, mesh, source);
+				CreateCompositeMesh(source, mesh, polyMesh.sourceMesh);
 
 				MeshRenderer renderer = go.GetComponent<MeshRenderer>();
 
 				if(renderer != null)
 					renderer.additionalVertexStreams = null;
 
-				GameObject.DestroyImmediate(polyMesh);
+                Undo.DestroyObjectImmediate(polyMesh);
 			}
 			else
 			{
@@ -160,7 +160,7 @@ namespace UnityEditor.Polybrush
 					AssetDatabase.CreateAsset(composite, path);
 
 					MeshFilter mf = go.GetComponent<MeshFilter>();
-					
+
 					SkinnedMeshRenderer smr = go.GetComponent<SkinnedMeshRenderer>();
 
 					if(mf != null)
@@ -204,7 +204,7 @@ namespace UnityEditor.Polybrush
 			composite.bindposes = mesh.bindposes != null && mesh.bindposes.Length == vertexCount ?
 				mesh.bindposes :
 				source.bindposes;
-	
+
 			List<Vector4> uvs = new List<Vector4>();
 
 			mesh.GetUVs(0, uvs);

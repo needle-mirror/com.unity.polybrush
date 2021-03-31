@@ -120,7 +120,7 @@ namespace UnityEditor.Polybrush
         static Type s_EditorUtilityType = null;
 
         static MethodInfo m_PolybrushOnSelectModeListenerMethodInfo;
-        
+
         static MethodInfo m_ProBuilderRefreshMethodInfo = null;
         static EventInfo m_ProBuilderOnSelectModeChanged = null;
         static PropertyInfo m_ProBuilderSelectModePropertyInfo = null;
@@ -204,7 +204,7 @@ namespace UnityEditor.Polybrush
                 return m_PolybrushOnSelectModeListenerMethodInfo;
             }
         }
-        
+
         static MethodInfo ProBuilderRefreshMethodInfo
         {
             get
@@ -397,10 +397,10 @@ namespace UnityEditor.Polybrush
         /// <param name="vertexCountChanged"></param>
         internal static void RefreshEditor(bool vertexCountChanged)
         {
-            if (ProBuilderMeshPositionsPropertyInfo == null)
+            if (ProBuilderRefreshMethodInfo == null)
             {
                 Debug.LogWarning(
-                    "ProBuilderBridge.ProBuilderRefresh() failed to find an appropriate `Refresh` method on `ProBuilder` type");
+                    "ProBuilderBridge.RefreshEditor() failed to find an appropriate `Refresh` method on `ProBuilderEditor` type");
                 return;
             }
 
@@ -438,7 +438,6 @@ namespace UnityEditor.Polybrush
             }
 
             object comp = obj.GetComponent(GetProBuilderMeshType());
-
             return (int) ProBuilderMeshVertexCountPropertyInfo.GetValue(comp);
         }
 
@@ -457,7 +456,6 @@ namespace UnityEditor.Polybrush
             }
 
             object comp = obj.GetComponent(GetProBuilderMeshType());
-
             ProBuilderMeshPositionsPropertyInfo.SetValue(comp, position);
         }
 
@@ -566,13 +564,12 @@ namespace UnityEditor.Polybrush
             if (ProBuilderMeshOptimizeMethodInfo == null)
             {
                 Debug.LogWarning(
-                    "ProBuilderBridge.Refresh() failed to find an appropriate `Refresh` method on `ProBuilderMesh` type");
+                    "ProBuilderBridge.Optimize() failed to find an appropriate `Optimize` method on `ProBuilderMesh` type");
                 return;
             }
 
             object comp = obj.GetComponent(GetProBuilderMeshType());
-
-            ProBuilderMeshOptimizeMethodInfo.Invoke(comp, null);
+            ProBuilderMeshOptimizeMethodInfo.Invoke(null, new object[]{comp, false});
         }
 
         /// <summary>
@@ -590,7 +587,7 @@ namespace UnityEditor.Polybrush
 
             Type tDelegate = ProBuilderOnSelectModeChanged.EventHandlerType;
             Delegate d = Delegate.CreateDelegate(tDelegate, PolybrushEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
-            
+
             MethodInfo addMethod = ProBuilderOnSelectModeChanged.GetAddMethod();
             addMethod.Invoke(null, new object[] { d });
         }
@@ -607,10 +604,10 @@ namespace UnityEditor.Polybrush
                     "ProBuilderBridge.ProBuilderUnsubscribeToSelectModeChanged() failed to find an appropriate `selectModeChanged` event on `ProBuilderEditor` type");
                 return;
             }
-            
+
             Type tDelegate = ProBuilderOnSelectModeChanged.EventHandlerType;
             Delegate d = Delegate.CreateDelegate(tDelegate, PolybrushEditor.instance, PolybrushOnSelectModeListenerMethodInfo);
-            
+
             MethodInfo removeMethod = ProBuilderOnSelectModeChanged.GetRemoveMethod();
             removeMethod.Invoke(null, new object[] { d });
         }
@@ -657,7 +654,7 @@ namespace UnityEditor.Polybrush
                     throw new NullReferenceException(string.Format("{0} not found.", method.Name));
                 }
             }
-            
+
             static void ValidateEventInfo(EventInfo evt)
             {
                 if (evt == null)

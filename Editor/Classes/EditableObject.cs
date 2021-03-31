@@ -1,5 +1,3 @@
-#define PROBUILDER_4_0_OR_NEWER
-
 using UnityEngine;
 using System;
 using System.Collections;
@@ -173,10 +171,8 @@ namespace UnityEditor.Polybrush
 		// cleaned up when finished editing.
 		internal bool isDirty = false;
 
-#if PROBUILDER_4_0_OR_NEWER
         // Is the mesh owned by ProBuilder?
         internal bool isProBuilderObject { get; private set; }
-#endif
 
 		// Container for polyMesh. @todo remove when Unity fixes
 		PolybrushMesh m_PolybrushMesh;
@@ -207,7 +203,6 @@ namespace UnityEditor.Polybrush
 				if(gameObjectAttached == null || graphicsMesh == null)
 					return false;
 
-#if PROBUILDER_4_0_OR_NEWER
                 if (isProBuilderObject)
                 {
                     if (ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached)
@@ -217,7 +212,6 @@ namespace UnityEditor.Polybrush
                         return false;
                     }
                 }
-#endif
 
                 return true;
 			}
@@ -256,10 +250,9 @@ namespace UnityEditor.Polybrush
             gameObjectAttached = go;
             isProBuilderObject = false;
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
                 isProBuilderObject = ProBuilderBridge.IsValidProBuilderMesh(gameObjectAttached);
-#endif
+
             Mesh mesh = null;
             MeshRenderer meshRenderer = gameObjectAttached.GetComponent<MeshRenderer>();
             meshFilter = gameObjectAttached.GetComponent<MeshFilter>();
@@ -290,7 +283,6 @@ namespace UnityEditor.Polybrush
                 }
             }
 
-#if PROBUILDER_4_0_OR_NEWER
             // if it's a probuilder object rebuild the mesh without optimization
             if (isProBuilderObject)
             {
@@ -300,7 +292,7 @@ namespace UnityEditor.Polybrush
                     ProBuilderBridge.Refresh(gameObjectAttached);
                 }
             }
-#endif
+
             if (meshRenderer != null || _skinMeshRenderer != null)
             {
                 mesh = m_PolybrushMesh.storedMesh;
@@ -385,8 +377,6 @@ namespace UnityEditor.Polybrush
                     m_PolybrushMesh.SynchronizeWithMeshRenderer();
             }
 
-
-#if PROBUILDER_4_0_OR_NEWER
             // if it's a probuilder object rebuild the mesh without optimization
             if (isProBuilderObject)
             {
@@ -410,7 +400,6 @@ namespace UnityEditor.Polybrush
                                | ProBuilderBridge.RefreshMask.Tangents));
                 }
             }
-#endif
 
             if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
             {
@@ -448,12 +437,14 @@ namespace UnityEditor.Polybrush
         {
             if (s_RebuildCollisions.value)
             {
-                MeshCollider mc = gameObjectAttached.GetComponent<MeshCollider>();
-
-                if (mc != null && mc.sharedMesh != graphicsMesh)
+                var mc = gameObjectAttached.GetComponent<MeshCollider>();
+                if (mc != null)
                 {
-                    Undo.RecordObject(mc, "Assign PolybrushMesh to MeshCollider");
-                    mc.sharedMesh = null;
+                    if(mc.sharedMesh != graphicsMesh)
+                        Undo.RecordObject(mc, "Assign PolybrushMesh to MeshCollider");
+
+                    //The shared mesh should update automatically but doesn't,
+                    //re-assigning it does the trick but might be costly
                     mc.sharedMesh = graphicsMesh;
                 }
             }
@@ -476,10 +467,9 @@ namespace UnityEditor.Polybrush
         /// </summary>
         internal void Revert()
 		{
-#if PROBUILDER_4_0_OR_NEWER
             if (isProBuilderObject)
                 Apply(true, true);
-#endif
+
             RemovePolybrushComponentsIfNecessary();
 
             if (m_PolybrushMesh.mode == PolybrushMesh.Mode.AdditionalVertexStream)
@@ -496,10 +486,9 @@ namespace UnityEditor.Polybrush
                 return;
 			}
 
-#if PROBUILDER_4_0_OR_NEWER
             if (isProBuilderObject)
                 return;
-#endif
+
             if (originalMesh == null || (source == ModelSource.Scene && !UnityPrimitiveMeshNames.Contains(originalMesh.name)))
                 return;
 
@@ -550,10 +539,8 @@ namespace UnityEditor.Polybrush
 
 		static bool MeshInstanceMatchesGameObject(Mesh mesh, GameObject go)
 		{
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.IsValidProBuilderMesh(go))
                 return true;
-#endif
 
             int gameObjectId = go.GetInstanceID();
 			int meshId = GetMeshId(mesh);

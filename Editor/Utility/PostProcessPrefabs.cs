@@ -5,9 +5,11 @@ using UnityEngine;
 
 namespace UnityEditor.Polybrush
 {
+    /// <summary>
+    /// Prefabs Post Process after asset importing
+    /// </summary>
     public class PostProcessPrefabs : AssetPostprocessor
     {
-
         internal static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
             List<PrefabPalette> palettes = PolyEditorUtility.GetAll<PrefabPalette>();
@@ -53,7 +55,7 @@ namespace UnityEditor.Polybrush
 
         private static void RemovedDeletedPrefabFromloadout()
         {
-            // If the prefab paint mode is the current one in polybrush, 
+            // If the prefab paint mode is the current one in polybrush,
             // and the prefab that has just been deleted is in the loadout,
             // Need to remove it from there or error spam will occur
             PolybrushEditor editor = PolybrushEditor.instance;

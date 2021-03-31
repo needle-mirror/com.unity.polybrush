@@ -96,33 +96,40 @@ namespace UnityEngine.Polybrush
 								(byte) (255 * vec.w) );
 		}
 
-        internal void SetChannelBaseTextureWeights(MeshChannel channel, Dictionary<int, int> baseTexToMask, Dictionary<int, List<int>> maskToIndices)
+        internal void SetChannelBaseTextureWeights(Dictionary<MeshChannel, List<int>> channelsToBaseTex, Dictionary<int, int> baseTexToMask, Dictionary<int, List<int>> maskToIndices)
         {
-            var channelWeights = weights[channelMap[channel]];
-            for (int i = 0; i < channelWeights.Length; i++)
+            foreach(var channelKvp in channelsToBaseTex)
             {
-                var vertexWeight = channelWeights[i];
-                foreach(var pair in baseTexToMask)
+                var channelWeights = weights[channelMap[channelKvp.Key]];
+                for(int i = 0; i < channelWeights.Length; i++)
                 {
-                    // Calculate the weight out of one already used for this mask,
-                    // and set the weight of the base texture to the remainder.
-                    // e.g. if all textures are on the same mask, the base texture is at
-                    //      index 0 and the vector looks like: (0, 0.2, 0.3, 0.4).
-                    //      Then 1 - (0.2 + 0.3 + 0.4) = 0.1, and the vector becomes: (0.1, 0.2, 0.3, 0.4).
-                    float value = 0f;
-                    List<int> indices;
-                    if (maskToIndices.TryGetValue(pair.Value, out indices))
+                    var vertexWeight = channelWeights[i];
+                    foreach(var baseTexIndex in channelKvp.Value)
                     {
-                        foreach (var ind in indices)
+                        if(!baseTexToMask.ContainsKey(baseTexIndex))
+                            continue;
+                        // Calculate the weight out of one already used for this mask,
+                        // and set the weight of the base texture to the remainder.
+                        // e.g. if all textures are on the same mask, the base texture is at
+                        //      index 0 and the vector looks like: (0, 0.2, 0.3, 0.4).
+                        //      Then 1 - (0.2 + 0.3 + 0.4) = 0.1, and the vector becomes: (0.1, 0.2, 0.3, 0.4).
+                        float value = 0f;
+                        List<int> indices;
+                        if(maskToIndices.TryGetValue(baseTexToMask[baseTexIndex], out indices))
                         {
-                            value += vertexWeight[ind];
+                            foreach(var ind in indices)
+                            {
+                                value += vertexWeight[ind];
+                            }
                         }
+
+                        vertexWeight[baseTexIndex] = 1 - value;
                     }
-                    vertexWeight[pair.Key] = 1 - value;
+
+                    channelWeights[i] = vertexWeight;
                 }
-                channelWeights[i] = vertexWeight;
+                weights[channelMap[channelKvp.Key]] = channelWeights;
             }
-            weights[channelMap[channel]] = channelWeights;
         }
 
         /// <summary>
@@ -244,25 +251,26 @@ namespace UnityEngine.Polybrush
         /// <param name="rhs"></param>
         /// <param name="strength"></param>
         /// <param name="index"></param>
-        internal void LerpWeightOnSingleChannel(SplatSet lhs, SplatWeight rhs, float strength, int index, int baseTexIndex)
+        internal void LerpWeightOnSingleChannel(SplatSet lhs, SplatWeight rhs, float strength, MeshChannel channel, int index, int baseTexIndex)
         {
+            if(!channelMap.ContainsKey(channel))
+                return;
+
+            var channelIndex = channelMap[channel];
             for (int i = 0; i < weightCount; i++)
             {
-                foreach (var cm in channelMap)
+                float lerpedValue = Mathf.LerpUnclamped(lhs.weights[channelIndex][i][index], rhs[channel][index], strength);
+
+                // replace the original value at index with the lerped value
+                var newWeightVector = lhs.weights[channelIndex][i];
+                newWeightVector[index] = lerpedValue;
+
+                if(baseTexIndex > -1)
                 {
-                    float lerpedValue = Mathf.LerpUnclamped(lhs.weights[cm.Value][i][index], rhs[cm.Key][index], strength);
-
-                    // replace the original value at index with the lerped value
-                    var newWeightVector = lhs.weights[cm.Value][i];
-                    newWeightVector[index] = lerpedValue;
-
-                    if(baseTexIndex > -1)
-                    {
-                        newWeightVector[baseTexIndex] += (lhs.weights[cm.Value][i][index] - newWeightVector[index]);
-                    }
-
-                    this.weights[cm.Value][i] = newWeightVector;
+                    newWeightVector[baseTexIndex] += (lhs.weights[channelIndex][i][index] - newWeightVector[index]);
                 }
+
+                this.weights[channelIndex][i] = newWeightVector;
             }
         }
 

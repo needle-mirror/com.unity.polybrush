@@ -1,6 +1,4 @@
-﻿#define PROBUILDER_4_0_OR_NEWER
-
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Polybrush;
@@ -17,9 +15,7 @@ namespace UnityEditor.Polybrush
 		// on Undo/Redo since Unity doesn't.
 		private HashSet<PolyMesh> modifiedMeshes = new HashSet<PolyMesh>();
 
-#if PROBUILDER_4_0_OR_NEWER
         private HashSet<GameObject> modifiedPbMeshes = new HashSet<GameObject>();
-#endif
 
         internal override void OnBrushBeginApply(BrushTarget brushTarget, BrushSettings brushSettings)
 		{
@@ -31,18 +27,14 @@ namespace UnityEditor.Polybrush
 			// false means no ToMesh or Refresh, true does.  Optional addl bool runs pb_Object.Optimize()
 			brushTarget.editableObject.Apply(true);
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists() && brushTarget.editableObject.isProBuilderObject)
                 ProBuilderBridge.Refresh(brushTarget.gameObject);
-#endif
 
             UpdateTempComponent(brushTarget, brushSettings);
 		}
 
 		internal override void RegisterUndo(BrushTarget brushTarget)
 		{
-
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.IsValidProBuilderMesh(brushTarget.gameObject))
             {
                 UnityEngine.Object pbMesh = ProBuilderBridge.GetProBuilderComponent(brushTarget.gameObject);
@@ -58,7 +50,6 @@ namespace UnityEditor.Polybrush
                 }
             }
             else
-#endif
             {
                 Undo.RegisterCompleteObjectUndo(brushTarget.editableObject.polybrushMesh, UndoMessage);
                 modifiedMeshes.Add(brushTarget.editableObject.polybrushMesh.polyMesh);
@@ -71,7 +62,6 @@ namespace UnityEditor.Polybrush
 		{
 			modifiedMeshes = new HashSet<PolyMesh>(modifiedMeshes.Where(x => x != null));
 
-#if PROBUILDER_4_0_OR_NEWER
             if (ProBuilderBridge.ProBuilderExists())
             {
                 // delete & undo causes cases where object is not null but the reference to it's pb_Object is
@@ -95,7 +85,6 @@ namespace UnityEditor.Polybrush
                 if (remove.Count() > 0)
                     modifiedPbMeshes.SymmetricExceptWith(remove);
             }
-#endif
 
             foreach (PolyMesh m in modifiedMeshes)
 			{

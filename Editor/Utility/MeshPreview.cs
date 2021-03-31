@@ -1,6 +1,4 @@
-﻿#define PROBUILDER_4_0_OR_NEWER
-
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Polybrush;
 
 namespace UnityEditor.Polybrush
@@ -129,11 +127,9 @@ namespace UnityEditor.Polybrush
             GameObject copy = GameObject.Instantiate<GameObject>(m_Asset as GameObject);
             copy.hideFlags = HideFlags.HideAndDontSave;
 
-#if PROBUILDER_4_0_OR_NEWER
             ProBuilderBridge.ToMesh(copy);
             ProBuilderBridge.Refresh(copy);
-#endif
-            
+
             MeshFilter mf = copy.GetComponent<MeshFilter>();
 
             Editor meshEditor = Editor.CreateEditor(mf.sharedMesh);

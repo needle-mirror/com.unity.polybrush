@@ -6,6 +6,9 @@ using System;
 
 namespace UnityEditor.Polybrush
 {
+    /// <summary>
+    /// CustomEditor for PrefabPalette.
+    /// </summary>
     [CustomEditor(typeof(PrefabPalette))]
     public class PrefabPaletteEditor : Editor
     {
@@ -54,6 +57,9 @@ namespace UnityEditor.Polybrush
             return null;
         }
 
+        /// <summary>
+        /// Overriding function to make a custom IMGUI inspector.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             if (loadoutEditor != null)

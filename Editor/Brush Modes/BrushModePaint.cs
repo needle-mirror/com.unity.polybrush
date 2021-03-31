@@ -405,54 +405,49 @@ namespace UnityEditor.Polybrush
 				Vector3[] vertices = target.editableObject.editMesh.vertices;
 				int[] indices = target.editableObject.editMesh.GetTriangles();
 
-				PolyHandles.PushMatrix();
-				PolyHandles.PushHandleColor();
-
-				Handles.matrix = target.transform.localToWorldMatrix;
-
 				int index = 0;
 
-                var data = m_EditableObjectsData[target.editableObject];
-				foreach(PolyRaycastHit hit in target.raycastHits)
-				{
-					if(hit.triangle > -1)
-					{
-						Handles.color = data.MeshVertexColors.TargetColors[indices[index]];
+                using(new Handles.DrawingScope(target.transform.localToWorldMatrix))
+                {
+                    var data = m_EditableObjectsData[target.editableObject];
+                    foreach (PolyRaycastHit hit in target.raycastHits)
+                    {
+                        if (hit.triangle > -1)
+                        {
+                            Handles.color = data.MeshVertexColors.TargetColors[indices[index]];
 
-						index = hit.triangle * 3;
+                            index = hit.triangle * 3;
 
-						Handles.DrawLine(vertices[indices[index+0]] + hit.normal * .1f, vertices[indices[index+1]] + hit.normal * .1f);
-						Handles.DrawLine(vertices[indices[index+1]] + hit.normal * .1f, vertices[indices[index+2]] + hit.normal * .1f);
-						Handles.DrawLine(vertices[indices[index+2]] + hit.normal * .1f, vertices[indices[index+0]] + hit.normal * .1f);
+                            Handles.DrawLine(vertices[indices[index + 0]] + hit.normal * .1f, vertices[indices[index + 1]] + hit.normal * .1f);
+                            Handles.DrawLine(vertices[indices[index + 1]] + hit.normal * .1f, vertices[indices[index + 2]] + hit.normal * .1f);
+                            Handles.DrawLine(vertices[indices[index + 2]] + hit.normal * .1f, vertices[indices[index + 0]] + hit.normal * .1f);
 
-						m_FillModeEdges[0].x = indices[index+0];
-						m_FillModeEdges[0].y = indices[index+1];
+                            m_FillModeEdges[0].x = indices[index + 0];
+                            m_FillModeEdges[0].y = indices[index + 1];
 
-						m_FillModeEdges[1].x = indices[index+1];
-						m_FillModeEdges[1].y = indices[index+2];
+                            m_FillModeEdges[1].x = indices[index + 1];
+                            m_FillModeEdges[1].y = indices[index + 2];
 
-						m_FillModeEdges[2].x = indices[index+2];
-						m_FillModeEdges[2].y = indices[index+0];
+                            m_FillModeEdges[2].x = indices[index + 2];
+                            m_FillModeEdges[2].y = indices[index + 0];
 
-						for(int i = 0; i < 3; i++)
-						{
-							if(data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
-							{
-								for(int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
-								{
-									index = m_FillModeAdjacentTriangles[n] * 3;
+                            for (int i = 0; i < 3; i++)
+                            {
+                                if (data.TriangleLookup.TryGetValue(m_FillModeEdges[i], out m_FillModeAdjacentTriangles))
+                                {
+                                    for (int n = 0; n < m_FillModeAdjacentTriangles.Count; n++)
+                                    {
+                                        index = m_FillModeAdjacentTriangles[n] * 3;
 
-									Handles.DrawLine(vertices[indices[index+0]] + hit.normal * .1f, vertices[indices[index+1]] + hit.normal * .1f);
-									Handles.DrawLine(vertices[indices[index+1]] + hit.normal * .1f, vertices[indices[index+2]] + hit.normal * .1f);
-									Handles.DrawLine(vertices[indices[index+2]] + hit.normal * .1f, vertices[indices[index+0]] + hit.normal * .1f);
-								}
-							}
-						}
-					}
-				}
-
-				PolyHandles.PopHandleColor();
-				PolyHandles.PopMatrix();
+                                        Handles.DrawLine(vertices[indices[index + 0]] + hit.normal * .1f, vertices[indices[index + 1]] + hit.normal * .1f);
+                                        Handles.DrawLine(vertices[indices[index + 1]] + hit.normal * .1f, vertices[indices[index + 2]] + hit.normal * .1f);
+                                        Handles.DrawLine(vertices[indices[index + 2]] + hit.normal * .1f, vertices[indices[index + 0]] + hit.normal * .1f);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 			}
 			else
 			{

@@ -6,20 +6,17 @@ using UnityEditor;
 
 namespace Polybrush
 {
-	/**
-	 *	Workaround for bug in `MeshRenderer.additionalVertexStreams`.
-	 *
-	 *	Namely, the mesh is not persistent in the editor and needs to be "refreshed" constantly.
-	 *
-	 *		- https://issuetracker.unity3d.com/issues/meshrenderer-dot-additionalvertexstreams-collapse-static-meshes
-	 *		- https://issuetracker.unity3d.com/issues/api-mesh-cannot-change-vertex-colors-using-meshrender-dot-additionalvertexstreams
-	 *		- https://issuetracker.unity3d.com/issues/meshrenderer-dot-additionalvertexstreams-discards-data-if-set-in-awake
-	 *		- https://issuetracker.unity3d.com/issues/meshrenderer-dot-additionalvertexstreams-looses-color-fast-in-editor
-	 */
+    /// <summary>
+    /// Workaround for bug in `MeshRenderer.additionalVertexStreams`.
+    /// Namely, the mesh is not persistent in the editor and needs to be "refreshed" constantly.
+    /// </summary>
 	[ExecuteInEditMode]
     [Obsolete()]
 	public class z_AdditionalVertexStreams : MonoBehaviour
 	{
+        /// <summary>
+        /// The Mesh set as additional vertex stream
+        /// </summary>
 		public Mesh m_AdditionalVertexStreamMesh = null;
 
 		MeshRenderer _meshRenderer;
@@ -38,6 +35,10 @@ namespace Polybrush
 			SetAdditionalVertexStreamsMesh(m_AdditionalVertexStreamMesh);
 		}
 
+        /// <summary>
+        /// Setting the additional vertex streams
+        /// </summary>
+        /// <param name="mesh">The Mesh to use for additionalVertexStreams</param>
 		public void SetAdditionalVertexStreamsMesh(Mesh mesh)
 		{
             if (meshRenderer != null)

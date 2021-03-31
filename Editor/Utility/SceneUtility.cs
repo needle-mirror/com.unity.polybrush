@@ -57,17 +57,9 @@ namespace UnityEditor.Polybrush
         /// <summary>
         /// Cast a ray (in model space) against a mesh.
         /// </summary>
-        /// <param name="InRay"></param>
-        /// <param name="vertices"></param>
-        /// <param name="triangles"></param>
-        /// <param name="hit"></param>
-        /// <param name="distance"></param>
-        /// <param name="cullingMode"></param>
-        /// <returns></returns>
         internal static bool MeshRaycast(Ray InRay, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity, Culling cullingMode = Culling.Front)
 		{
-            Vector3 hitNormal = Vector3.zero;	// vars used in loop
-			Vector3 vert0, vert1, vert2;
+			Vector3 hitNormal, vert0, vert1, vert2;
 			Vector3 origin = InRay.origin, direction = InRay.direction;
 
             hit = new PolyRaycastHit(Mathf.Infinity,
@@ -75,9 +67,7 @@ namespace UnityEditor.Polybrush
                                     Vector3.zero,
                                     -1);
 
-            /**
-			 * Iterate faces, testing for nearest hit to ray origin.
-			 */
+            // Iterate faces, testing for nearest hit to ray origin.
             for (int CurTri = 0; CurTri < triangles.Length; CurTri += 3)
 			{
                 if (CurTri + 2 >= triangles.Length) continue;
@@ -88,7 +78,7 @@ namespace UnityEditor.Polybrush
 				vert2 = vertices[triangles[CurTri+2]];
 
                 // Second pass, test intersection with triangle
-                if (Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, ref distance, ref hitNormal))
+                if (Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, out distance, out hitNormal))
 				{
                     if (distance < hit.distance)
                     {
@@ -97,14 +87,8 @@ namespace UnityEditor.Polybrush
                         hit.position = InRay.GetPoint(hit.distance);
                         hit.normal = hitNormal;
                     }
-
                 }
 			}
-
-			hit = new PolyRaycastHit( hit.distance,
-									InRay.GetPoint(hit.distance),
-									hitNormal,
-									hit.triangle);
 
 			return hit.triangle > -1;
 		}
@@ -171,7 +155,7 @@ namespace UnityEditor.Polybrush
             if (tool == BrushTool.Texture && mesh.subMeshCount > 1)
             {
                 var mode = bMode as BrushModeTexture;
-                int[] submeshIndices = mesh.subMeshes[mode.currentMeshACIndex].indexes;
+                int[] submeshIndices = mesh.subMeshes[mode.m_CurrentMeshACIndex].indexes;
 
                 for (int n = 0; n < target.raycastHits.Count; n++)
                 {

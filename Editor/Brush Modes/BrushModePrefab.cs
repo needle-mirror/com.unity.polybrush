@@ -244,11 +244,7 @@ namespace UnityEditor.Polybrush
             ray.direction = target.transform.InverseTransformDirection(ray.direction);
 
 			PolyRaycastHit rand_hit;
-
-			Vector3[] vertices = target.editableObject.editMesh.vertices;
-			int[] triangles = target.editableObject.editMesh.GetTriangles();
-
-			if( PolySceneUtility.MeshRaycast(ray, vertices, triangles, out rand_hit) )
+            if( PolySceneUtility.MeshRaycast(ray, target.editableObject.editMesh, out rand_hit) )
 			{
                 PlacementSettings placementSettings = prefabAndSettings.settings;
                 Vector3 scaleSetting = prefab.transform.localScale;

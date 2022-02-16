@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Polybrush;
 
@@ -32,6 +33,21 @@ namespace UnityEditor.Polybrush
                 new GUIContent("Overwrite Mesh"),
                 new GUIContent("Additional Vertex Stream")
             };
+        }
+
+        void OnEnable()
+        {
+            if(PolybrushEditor.instance == null)
+            {
+                var mesh = ( target as PolybrushMesh );
+#if UNITY_2019_1_OR_NEWER
+                if(mesh != null && mesh.gameObject.TryGetComponent<ZoomOverride>(out var zoom))
+                    DestroyImmediate(zoom);
+#else
+                if(mesh != null)
+                    DestroyImmediate(mesh.gameObject.GetComponent<ZoomOverride>());
+#endif
+            }
         }
 
         /// <summary>
@@ -141,6 +157,40 @@ namespace UnityEditor.Polybrush
                     }
                 }
             }
+        }
+
+        bool HasFrameBounds()
+        {
+            var mesh = ( target as PolybrushMesh );
+#if UNITY_2019_1_OR_NEWER
+            if(mesh != null && mesh.gameObject.TryGetComponent<ZoomOverride>(out var zoom))
+                return zoom.HasFrameBounds();
+#else
+            if(mesh != null)
+            {
+                var zoom = mesh.gameObject.GetComponent<ZoomOverride>();
+                if(zoom != null)
+                    return zoom.HasFrameBounds();
+            }
+#endif
+            return false;
+        }
+
+        Bounds OnGetFrameBounds()
+        {
+            var mesh = ( target as PolybrushMesh );
+#if UNITY_2019_1_OR_NEWER
+            if(mesh != null && mesh.gameObject.TryGetComponent<ZoomOverride>(out var zoom))
+                return zoom.OnGetFrameBounds();
+#else
+            if(mesh != null)
+            {
+                var zoom = mesh.gameObject.GetComponent<ZoomOverride>();
+                if(zoom != null)
+                    return zoom.OnGetFrameBounds();
+            }
+#endif
+            return new Bounds();
         }
     }
 }

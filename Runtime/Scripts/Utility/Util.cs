@@ -165,7 +165,6 @@ namespace UnityEngine.Polybrush
             return lookup;
         }
 
-
         /// <summary>
         /// Lerp between 2 colors using RGB.
         /// </summary>
@@ -174,13 +173,13 @@ namespace UnityEngine.Polybrush
         /// <param name="mask"></param>
         /// <param name="alpha"></param>
         /// <returns></returns>
-        internal static Color32 Lerp(Color32 lhs, Color32 rhs, ColorMask mask, float alpha)
-		{
-			return new Color32(	mask.r ? (byte)(lhs.r * (1f-alpha) + rhs.r * alpha) : lhs.r,
-								mask.g ? (byte)(lhs.g * (1f-alpha) + rhs.g * alpha) : lhs.g,
-								mask.b ? (byte)(lhs.b * (1f-alpha) + rhs.b * alpha) : lhs.b,
-								mask.a ? (byte)(lhs.a * (1f-alpha) + rhs.a * alpha) : lhs.a );
-		}
+        internal static Color Lerp(Color lhs, Color rhs, ColorMask mask, float alpha)
+        {
+            return new Color(	mask.r ? (lhs.r * (1f-alpha) + rhs.r * alpha) : lhs.r,
+                mask.g ? (lhs.g * (1f-alpha) + rhs.g * alpha) : lhs.g,
+                mask.b ? (lhs.b * (1f-alpha) + rhs.b * alpha) : lhs.b,
+                mask.a ? (lhs.a * (1f-alpha) + rhs.a * alpha) : lhs.a );
+        }
 
         /// <summary>
         /// Lerp between 2 colors using RGB.

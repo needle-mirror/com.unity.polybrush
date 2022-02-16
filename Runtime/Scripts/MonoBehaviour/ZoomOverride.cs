@@ -1,7 +1,6 @@
 ﻿#if UNITY_EDITOR
 
 using UnityEngine;
-using System.Collections.Generic;
 
 namespace UnityEngine.Polybrush
 {
@@ -43,7 +42,7 @@ namespace UnityEngine.Polybrush
 
 		protected virtual void OnEnable()
 		{
-			this.hideFlags = HideFlags.HideAndDontSave;
+            this.hideFlags = HideFlags.HideAndDontSave | HideFlags.HideInInspector;
 
 			Component[] other = GetComponents<ZoomOverride>();
 
@@ -51,6 +50,39 @@ namespace UnityEngine.Polybrush
 				if(c != this)
 					GameObject.DestroyImmediate(c);
 		}
+
+        internal bool HasFrameBounds()
+        {
+            return 	Mesh != null && weights.Length == Mesh.vertexCount;
+        }
+
+        internal Bounds OnGetFrameBounds()
+        {
+            Vector3[] vertices = Mesh.vertices;
+
+            Bounds bounds = new Bounds(Vector3.zero, Vector3.zero);
+            int appliedWeights = 0;
+
+            for(int i = 0; i < Mesh.vertexCount; i++)
+            {
+                if(weights[i] > 0.0001f)
+                {
+                    if(appliedWeights > 0)
+                        bounds.Encapsulate( transform.TransformPoint(vertices[i]));
+                    else
+                        bounds.center = transform.TransformPoint(vertices[i]);
+
+                    appliedWeights++;
+                }
+            }
+
+            if(appliedWeights < 1)
+                bounds = transform.GetComponent<MeshRenderer>().bounds;
+            else if(appliedWeights == 1 || bounds.size.magnitude < .1f)
+                bounds.size = Vector3.one * .5f;
+
+            return bounds;
+        }
 	}
 }
 #endif

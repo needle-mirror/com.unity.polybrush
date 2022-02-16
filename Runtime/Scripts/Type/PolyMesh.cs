@@ -22,7 +22,7 @@ namespace UnityEngine.Polybrush
         [SerializeField]
         internal Vector3[] normals = null;
         [SerializeField]
-        internal Color32[] colors = null;
+        internal Color[] colors = null;
         [SerializeField]
         internal Vector4[] tangents = null;
         [SerializeField]
@@ -60,6 +60,35 @@ namespace UnityEngine.Polybrush
 				return m_SubMeshes.Length;
 			}
 		}
+
+        ComputeBuffer m_VertexBuffer = null;
+        internal ComputeBuffer vertexBuffer
+        {
+            get
+            {
+                if(m_VertexBuffer == null)
+                {
+                    m_VertexBuffer = new ComputeBuffer(vertices.Length, 12);
+                    m_VertexBuffer.SetData(vertices);
+                }
+                return m_VertexBuffer;
+            }
+        }
+
+        ComputeBuffer m_TriangleBuffer = null;
+        internal ComputeBuffer triangleBuffer
+        {
+            get
+            {
+                if(m_TriangleBuffer == null)
+                {
+                    int[] triangles = GetTriangles();
+                    m_TriangleBuffer = new ComputeBuffer(triangles.Length, sizeof(int));
+                    m_TriangleBuffer.SetData(triangles);
+                }
+                return m_TriangleBuffer;
+            }
+        }
 
         internal PolyMesh()
         {
@@ -122,7 +151,20 @@ namespace UnityEngine.Polybrush
 			uv2 = null;
 			uv3 = null;
             m_SubMeshes = null;
-		}
+            ClearBuffers();
+        }
+
+        internal void ClearBuffers()
+        {
+            if(m_VertexBuffer != null)
+                m_VertexBuffer.Dispose();
+            if(m_TriangleBuffer != null)
+                m_TriangleBuffer.Dispose();
+
+            m_VertexBuffer = null;
+            m_TriangleBuffer = null;
+        }
+
 
         /// <summary>
         /// Fetches the triangle list of this object.
@@ -228,7 +270,7 @@ namespace UnityEngine.Polybrush
 			{
 				mesh.vertices = vertices;
 				mesh.normals = normals;
-				mesh.colors32 = colors;
+                mesh.colors = colors;
 				mesh.tangents = tangents;
 
 				mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
@@ -247,7 +289,7 @@ namespace UnityEngine.Polybrush
 			{
 				if((attrib & MeshChannel.Position) > 0) mesh.vertices = vertices;
 				if((attrib & MeshChannel.Normal) > 0) mesh.normals = normals;
-				if((attrib & MeshChannel.Color) > 0) mesh.colors32 = colors;
+				if((attrib & MeshChannel.Color) > 0) mesh.colors = colors;
 				if((attrib & MeshChannel.Tangent) > 0) mesh.tangents = tangents;
 				if((attrib & MeshChannel.UV0) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
 				if((attrib & MeshChannel.UV2) > 0) mesh.SetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);
@@ -264,7 +306,7 @@ namespace UnityEngine.Polybrush
             {
                 vertices = mesh.vertices;
                 normals = mesh.normals;
-                colors = mesh.colors32;
+                colors = mesh.colors;
                 tangents = mesh.tangents;
 
                 mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
@@ -284,7 +326,7 @@ namespace UnityEngine.Polybrush
             {
                 if ((attrib & MeshChannel.Position) > 0) vertices = mesh.vertices;
                 if ((attrib & MeshChannel.Normal) > 0) normals = mesh.normals;
-                if ((attrib & MeshChannel.Color) > 0) colors = mesh.colors32;
+                if ((attrib & MeshChannel.Color) > 0) colors = mesh.colors;
                 if ((attrib & MeshChannel.Tangent) > 0) tangents = mesh.tangents;
                 if ((attrib & MeshChannel.UV0) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV0), uv0);
                 if ((attrib & MeshChannel.UV2) > 0) mesh.GetUVs(MeshChannelUtility.UVChannelToIndex(MeshChannel.UV2), uv1);

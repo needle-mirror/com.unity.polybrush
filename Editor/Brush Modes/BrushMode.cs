@@ -52,7 +52,7 @@ namespace UnityEditor.Polybrush
             if(tempComponent == null)
                 tempComponent = target.gameObjectAttached.AddComponent<ZoomOverride>();
 
-            tempComponent.hideFlags = HideFlags.HideAndDontSave;
+            tempComponent.hideFlags = HideFlags.HideAndDontSave | HideFlags.HideInInspector;
 			tempComponent.SetWeights(null, 0f);
 		}
 
@@ -208,7 +208,7 @@ namespace UnityEditor.Polybrush
             UpdateBrushGizmosColor();
             foreach (PolyRaycastHit hit in target.raycastHits)
                 PolyHandles.DrawBrush(hit.position, hit.normal, settings, target.localToWorldMatrix, innerColor, outerColor);
-                
+
 #if Z_DEBUG
 
 #if Z_DRAW_WEIGHTS || DRAW_PER_VERTEX_ATTRIBUTES

@@ -1,0 +1,30 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel ColorLerpKernel
+
+RWStructuredBuffer<float4> resultColors;
+StructuredBuffer<float> weightBuffer;
+StructuredBuffer<float4> originalColorBuffer;
+StructuredBuffer<float4> lerpColorBuffer;
+
+float4 mask;
+
+[numthreads(512,1,1)]
+void ColorLerpKernel (uint id : SV_DispatchThreadID)
+{
+    float r = originalColorBuffer[id].x;
+    float g = originalColorBuffer[id].y;
+    float b = originalColorBuffer[id].z;
+    float a = originalColorBuffer[id].w;
+
+    float rl = lerpColorBuffer[id].x;
+    float gl = lerpColorBuffer[id].y;
+    float bl = lerpColorBuffer[id].z;
+    float al = lerpColorBuffer[id].w;
+
+    r = lerp( r, (r * (1.0f - weightBuffer[id]) + rl * weightBuffer[id]), mask.r );
+    g = lerp( g, (g * (1.0f - weightBuffer[id]) + gl * weightBuffer[id]), mask.g );
+    b = lerp( b, (b * (1.0f - weightBuffer[id]) + bl * weightBuffer[id]), mask.b );
+    a = lerp( a, (a * (1.0f - weightBuffer[id]) + al * weightBuffer[id]), mask.a );
+
+    resultColors[id] = float4(r, g, b, a);
+}

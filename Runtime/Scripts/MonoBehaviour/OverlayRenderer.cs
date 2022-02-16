@@ -2,8 +2,6 @@
 #if UNITY_EDITOR
 
 using UnityEngine;
-using UnityEditor;
-using System.Collections.Generic;
 using System;
 
 namespace UnityEngine.Polybrush
@@ -199,7 +197,7 @@ namespace UnityEngine.Polybrush
 			// instead of relying on 'SceneCamera' string comparison, check if the hideflags match.
 			// this could probably even just check for one bit match, since chances are that any
 			// game view camera isn't going to have hideflags set.
-			if((Camera.current.gameObject.hideFlags & SceneCameraHideFlags) != SceneCameraHideFlags || Camera.current.name != "SceneCamera" )
+			if(Camera.current == null || (Camera.current.gameObject.hideFlags & SceneCameraHideFlags) != SceneCameraHideFlags || Camera.current.name != "SceneCamera" )
 				return;
 
 			if(wireframeMesh != null)

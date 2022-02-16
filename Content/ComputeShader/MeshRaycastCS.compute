@@ -1,0 +1,48 @@
+#pragma kernel MeshRaycastCS
+
+RWStructuredBuffer<float> resultHits;
+StructuredBuffer<float3> vertexBuffer;
+StructuredBuffer<int> triangleBuffer;
+
+float4 rayOrigin;
+float4 rayDirection;
+
+[numthreads(512,1,1)]
+void MeshRaycastCS (uint id : SV_DispatchThreadID)
+{
+    resultHits[id] = 1000000.0f;
+
+    float3 vert0 = vertexBuffer[triangleBuffer[3*id]];
+    float3 vert1 = vertexBuffer[triangleBuffer[3*id+1]];
+    float3 vert2 = vertexBuffer[triangleBuffer[3*id+2]];
+
+    float3 origin = rayOrigin.xyz;
+    float3 direction = rayDirection.xyz;
+
+    //Compute intersection with triangle
+    float3 tmp1 = vert1 - vert0;
+    float3 tmp2 = vert2 - vert0;
+
+    float3 tmp4 = cross(direction, tmp2);
+    float det = dot(tmp1, tmp4);
+
+    if (det < 0.001f)
+        return;
+
+    float3 tmp3 = origin - vert0;
+    float u = dot(tmp3, tmp4);
+
+    if (u < 0.0f || u > det)
+        return;
+
+    tmp4 = cross(tmp3, tmp1);
+
+    float v = dot(direction, tmp4);
+
+    if (v < 0.0f || u + v > det)
+        return;
+
+    resultHits[id] = dot(tmp2, tmp4) * (1.0f / det);
+}
+
+

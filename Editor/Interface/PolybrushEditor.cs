@@ -293,6 +293,7 @@ namespace UnityEditor.Polybrush
 			{
 				m_WantsRepaint = false;
 				Repaint();
+                SceneView.RepaintAll();
 			}
             Profiler.EndSample();
 		}
@@ -811,7 +812,6 @@ namespace UnityEditor.Polybrush
 
             if(brushTarget == null)
             {
-                SceneView.RepaintAll();
                 DoRepaint();
 
                 m_LastSecondaryBrushTargets.Clear();
@@ -858,7 +858,6 @@ namespace UnityEditor.Polybrush
 
             OnBrushMove();
 
-			SceneView.RepaintAll();
 			DoRepaint();
 		}
 
@@ -914,13 +913,10 @@ namespace UnityEditor.Polybrush
 
 			bool hitMesh = false;
 
-            int[] triangles = editable.editMesh.GetTriangles();
             foreach(Ray ray in s_Rays)
             {
                 PolyRaycastHit hit;
-
-                if(PolySceneUtility.WorldRaycast(ray, editable.transform, editable.visualMesh.vertices, triangles,
-                    out hit))
+                if(PolySceneUtility.WorldRaycast(ray, editable.transform, editable.visualMesh, out hit))
                 {
                     target.raycastHits.Add(hit);
                     hitMesh = true;
@@ -990,7 +986,7 @@ namespace UnityEditor.Polybrush
             foreach(var secondaryBrushTarget in m_SecondaryBrushTargets)
                 mode.OnBrushApply( secondaryBrushTarget, brushSettings);
 
-			SceneView.RepaintAll();
+			DoRepaint();
 		}
 
 		void OnBrushBeginApply(BrushTarget brushTarget, BrushSettings settings)
@@ -1041,7 +1037,6 @@ namespace UnityEditor.Polybrush
 
 			e.Use();
 			DoRepaint();
-			SceneView.RepaintAll();
 		}
 
 		void OnSelectionChanged()
@@ -1084,7 +1079,9 @@ namespace UnityEditor.Polybrush
 
             mode.OnBrushExit(target.editableObject);
 
-			if(!m_ApplyingBrush)
+            target.editableObject.ClearMeshBuffers();
+
+            if(!m_ApplyingBrush)
 				target.editableObject.Revert();
 		}
 
@@ -1153,17 +1150,8 @@ namespace UnityEditor.Polybrush
                     if (mc == null || mf == null || mf.sharedMesh == null)
                         continue;
 
-                    if (PrefabUtility.IsPartOfPrefabInstance(go))
-                    {
-                        SerializedObject obj = new SerializedObject(mc);
-                        SerializedProperty prop = obj.FindProperty("m_Mesh");
-                        PrefabUtility.RevertPropertyOverride(prop, InteractionMode.AutomatedAction);
-                    }
-                    else
-                    {
-                        mc.sharedMesh = null;
-                        mc.sharedMesh = mf.sharedMesh;
-                    }
+                    mc.sharedMesh = null;
+                    mc.sharedMesh = mf.sharedMesh;
                 }
             }
 
@@ -1172,7 +1160,6 @@ namespace UnityEditor.Polybrush
             m_LastHoveredGameObject = null;
             m_UndoQueue.Clear();
 
-            SceneView.RepaintAll();
             DoRepaint();
         }
     }

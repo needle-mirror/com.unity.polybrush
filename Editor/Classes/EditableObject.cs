@@ -146,7 +146,7 @@ namespace UnityEditor.Polybrush
 			_editMesh.name = originalMesh.name;
 			_editMesh.vertices	= GetAttribute(x => x.vertices);
 			_editMesh.normals	= GetAttribute(x => x.normals);
-			_editMesh.colors 	= GetAttribute(x => x.colors32);
+			_editMesh.colors 	= GetAttribute(x => x.colors);
 			_editMesh.tangents	= GetAttribute(x => x.tangents);
 			_editMesh.uv0 = GetAttribute(x => { List<Vector4> l = new List<Vector4>(); x.GetUVs(0, l); return l; } );
 			_editMesh.uv1 = GetAttribute(x => { List<Vector4> l = new List<Vector4>(); x.GetUVs(1, l); return l; } );
@@ -581,6 +581,12 @@ namespace UnityEditor.Polybrush
             {
                 polybrushMesh.SetMesh(originalMesh);
             }
+        }
+
+        internal void ClearMeshBuffers()
+        {
+            visualMesh.ClearBuffers();
+            _editMesh.ClearBuffers();
         }
 
 #pragma warning disable 612

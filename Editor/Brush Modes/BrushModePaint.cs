@@ -16,34 +16,74 @@ namespace UnityEditor.Polybrush
             /// <summary>
             /// Copy of colors array loaded from active mesh.
             /// </summary>
-            public Color32[] OriginalColors;
+            public Color[] OriginalColors;
 
             /// <summary>
             /// Colors array used when applying brush.
             /// </summary>
-            public Color32[] TargetColors;
+            public Color[] TargetColors;
 
             /// <summary>
             /// Colors array used when erasing color.
             /// Only used in "brush" mode. "Flood" and "Fill" modes will use white color.
             /// </summary>
-            public Color32[] EraseColors;
+            public Color[] EraseColors;
 
             /// <summary>
             /// Current active colors applied on active mesh.
             /// </summary>
-            public Color32[] Colors;
+            public Color[] Colors;
+
+            /// <summary>
+            /// Buffer of colors array loaded from active mesh.
+            /// </summary>
+            public ComputeBuffer OriginalColorsBuffer;
+
+            /// <summary>
+            /// Buffer array used when applying brush.
+            /// </summary>
+            public ComputeBuffer TargetColorsBuffer;
+
+            /// <summary>
+            /// Buffer array used when erasing color.
+            /// Only used in "brush" mode. "Flood" and "Fill" modes will use white color.
+            /// </summary>
+            public ComputeBuffer EraseColorsBuffer;
+
+            /// <summary>
+            /// Buffer of current active colors applied on active mesh.
+            /// </summary>
+            public ComputeBuffer ColorsBuffer;
+
+            /// <summary>
+            /// Buffer of current weights applied on active mesh.
+            /// </summary>
+            public ComputeBuffer WeightsBuffer;
 
             /// <summary>
             /// Refresh this instance with new informations based on a given mesh vertex colors.
             /// </summary>
             /// <param name="baseColors">Vertex colors array from a given mesh. It'll be used to initialize every fields of this struct.</param>
-            public void Build(Color32[] baseColors)
+            public void Build(Color[] baseColors)
             {
+                var colorLength = baseColors.Length;
                 OriginalColors = baseColors;
-                Colors = new Color32[baseColors.Length];
-                TargetColors = new Color32[baseColors.Length];
-                EraseColors = new Color32[baseColors.Length];
+                Colors = new Color[colorLength];
+                TargetColors = new Color[colorLength];
+                EraseColors = new Color[colorLength];
+
+                if(SystemInfo.supportsComputeShaders)
+                {
+                    DisposeBuffers();
+
+                    OriginalColorsBuffer = new ComputeBuffer(colorLength, 4 * sizeof(float));
+                    EraseColorsBuffer = new ComputeBuffer(colorLength, 4 * sizeof(float));
+                    TargetColorsBuffer = new ComputeBuffer(colorLength, 4 * sizeof(float));
+                    ColorsBuffer = new ComputeBuffer(colorLength, 4 * sizeof(float));
+                    WeightsBuffer = new ComputeBuffer(colorLength, sizeof(float));
+
+                    OriginalColorsBuffer.SetData(OriginalColors);
+                }
             }
 
             /// <summary>
@@ -62,6 +102,35 @@ namespace UnityEditor.Polybrush
                     TargetColors[i] = Util.Lerp(OriginalColors[i], color, mask, strength);
                     EraseColors[i] = Util.Lerp(OriginalColors[i], s_WhiteColor, mask, strength);
                 }
+
+
+                if(SystemInfo.supportsComputeShaders)
+                {
+                    TargetColorsBuffer.SetData(TargetColors);
+                    EraseColorsBuffer.SetData(EraseColors);
+                }
+            }
+
+            public void ApplyColors()
+            {
+                System.Array.Copy(Colors, OriginalColors, Colors.Length);
+
+                if(SystemInfo.supportsComputeShaders)
+                    OriginalColorsBuffer.SetData(OriginalColors);
+            }
+
+            public void DisposeBuffers()
+            {
+                if(OriginalColorsBuffer != null)
+                    OriginalColorsBuffer.Dispose();
+                if(EraseColorsBuffer != null)
+                    EraseColorsBuffer.Dispose();
+                if(TargetColorsBuffer != null)
+                    TargetColorsBuffer.Dispose();
+                if(ColorsBuffer != null)
+                    ColorsBuffer.Dispose();
+                if(WeightsBuffer != null)
+                    WeightsBuffer.Dispose();
             }
         }
 
@@ -76,7 +145,7 @@ namespace UnityEditor.Polybrush
 
 		// how many applications it should take to reach the full strength
 		const float k_StrengthModifier = 1f/8f;
-		static readonly Color32 s_WhiteColor = new Color32(255, 255, 255, 255);
+		static readonly Color s_WhiteColor = new Color32(255, 255, 255, 255);
 
 		[SerializeField]
         internal PaintMode paintMode = PaintMode.Brush;
@@ -95,6 +164,23 @@ namespace UnityEditor.Polybrush
 		ColorPalette[] m_AvailablePalettes = null;
 		string[] m_AvailablePalettesAsString = null;
 		int m_CurrentPaletteIndex = -1;
+
+        //Compute Shader variables
+        const string k_ShaderPath = "/Content/ComputeShader/ColorLerpCS.compute";
+        ComputeShader m_ColorLerpShader;
+        ComputeShader colorLerpShader
+        {
+            get
+            {
+                if(m_ColorLerpShader == null)
+                    m_ColorLerpShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(PolyEditorUtility.RootFolder + k_ShaderPath);
+
+                if(m_ColorLerpShader == null)
+                    Debug.LogWarning("Compute Shader not found at "+PolyEditorUtility.RootFolder + k_ShaderPath);
+
+                return m_ColorLerpShader;
+            }
+        }
 
 		// temp vars
 		PolyEdge[] m_FillModeEdges = new PolyEdge[3];
@@ -296,12 +382,11 @@ namespace UnityEditor.Polybrush
 					break;
 
 				case PaintMode.Fill:
-
-					System.Array.Copy(vertexColorInfo.OriginalColors, vertexColorInfo.Colors, vertexCount);
+                    System.Array.Copy(vertexColorInfo.OriginalColors, vertexColorInfo.Colors, vertexCount);
 					int[] indices = target.editableObject.editMesh.GetTriangles();
 					int index = 0;
 
-					foreach(PolyRaycastHit hit in target.raycastHits)
+                    foreach(PolyRaycastHit hit in target.raycastHits)
 					{
 						if(hit.triangle > -1)
 						{
@@ -341,12 +426,44 @@ namespace UnityEditor.Polybrush
 
                 default:
                 {
-                    for (int i = 0; i < vertexCount; i++)
+                    if(SystemInfo.supportsComputeShaders && colorLerpShader != null)
                     {
-                        vertexColorInfo.Colors[i] = Util.Lerp(vertexColorInfo.OriginalColors[i],
-                            invert ? vertexColorInfo.EraseColors[i] : vertexColorInfo.TargetColors[i],
-                            mask,
-                            weights[i]);
+                        int kernelIndex = colorLerpShader.FindKernel("ColorLerpKernel");
+
+                        ComputeBuffer originalColorsBuffer = data.MeshVertexColors.OriginalColorsBuffer;
+                        ComputeBuffer lerpColorsBuffer = data.MeshVertexColors.TargetColorsBuffer;
+                        if(invert)
+                            lerpColorsBuffer = data.MeshVertexColors.EraseColorsBuffer;
+
+                        ComputeBuffer weightsBuffer = data.MeshVertexColors.WeightsBuffer;
+                        weightsBuffer.SetData(weights);
+
+                        ComputeBuffer resultColorsBuffer = data.MeshVertexColors.ColorsBuffer;
+                        resultColorsBuffer.SetData(vertexColorInfo.Colors);
+
+                        colorLerpShader.SetBuffer(kernelIndex, "originalColorBuffer", originalColorsBuffer);
+                        colorLerpShader.SetBuffer(kernelIndex, "lerpColorBuffer", lerpColorsBuffer);
+                        colorLerpShader.SetBuffer(kernelIndex, "weightBuffer", weightsBuffer);
+                        colorLerpShader.SetBuffer(kernelIndex, "resultColors", resultColorsBuffer);
+
+                        Vector4 maskVect = new Vector4(mask.r ? 1 : 0,mask.g ? 1 : 0, mask.b ? 1 : 0, mask.a ? 1 : 0);
+                        colorLerpShader.SetVector("mask",maskVect);
+
+                        uint threadGroupSize;
+                        colorLerpShader.GetKernelThreadGroupSizes(kernelIndex, out threadGroupSize, out _, out _);
+                        colorLerpShader.Dispatch(kernelIndex, Mathf.CeilToInt(( resultColorsBuffer.count / threadGroupSize ) + 1), 1, 1);
+
+                        resultColorsBuffer.GetData(vertexColorInfo.Colors);
+                    }
+                    else
+                    {
+                        for(int i = 0; i < vertexCount; i++)
+                        {
+                            vertexColorInfo.Colors[i] = Util.Lerp(vertexColorInfo.OriginalColors[i],
+                                invert ? vertexColorInfo.EraseColors[i] : vertexColorInfo.TargetColors[i],
+                                mask,
+                                weights[i]);
+                        }
                     }
 
                     break;
@@ -357,7 +474,7 @@ namespace UnityEditor.Polybrush
 			target.editableObject.ApplyMeshAttributes(MeshChannel.Color);
 		}
 
-		// Called when the mouse exits hovering an editable object.
+        // Called when the mouse exits hovering an editable object.
 		internal override void OnBrushExit(EditableObject target)
 		{
 			base.OnBrushExit(target);
@@ -372,6 +489,9 @@ namespace UnityEditor.Polybrush
 
             data.LikelySupportsVertexColors = true;
 
+            if(SystemInfo.supportsComputeShaders)
+                data.MeshVertexColors.DisposeBuffers();
+
             m_EditableObjectsData.Remove(target);
         }
 
@@ -379,7 +499,7 @@ namespace UnityEditor.Polybrush
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)
         {
             var vertexColorInfo = m_EditableObjectsData[target.editableObject].MeshVertexColors;
-            System.Array.Copy(vertexColorInfo.Colors, vertexColorInfo.OriginalColors, vertexColorInfo.Colors.Length);
+            vertexColorInfo.ApplyColors();
 			target.editableObject.editMesh.colors = vertexColorInfo.OriginalColors;
             target.editableObject.modifiedChannels |= MeshChannel.Color;
 
@@ -472,12 +592,12 @@ namespace UnityEditor.Polybrush
         {
             PolyMesh m = target.editMesh;
             int vertexCount = m.vertexCount;
-            Color32[] newBaseColors = null;
+            Color[] newBaseColors = null;
 
             if(m.colors != null && m.colors.Length == vertexCount)
                 newBaseColors = Util.Duplicate(m.colors);
             else
-                newBaseColors = Util.Fill<Color32>(x => { return Color.white; }, vertexCount);
+                newBaseColors = Util.Fill<Color>(x => { return Color.white; }, vertexCount);
 
             EditableObjectData data;
             if(m_EditableObjectsData.TryGetValue(target, out data))

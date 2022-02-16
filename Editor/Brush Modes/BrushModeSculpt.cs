@@ -198,10 +198,7 @@ namespace UnityEditor.Polybrush
                 return;
 
             OverlayRenderer ren = target.gameObjectAttached.AddComponent<OverlayRenderer>();
-            ren.hideFlags = HideFlags.DontSave
-                | HideFlags.NotEditable
-                | HideFlags.HideInInspector
-                | HideFlags.HideInHierarchy;
+            ren.hideFlags = HideFlags.HideAndDontSave | HideFlags.HideInInspector;
 			ren.SetMesh(target.editMesh);
 
             ren.fullColor = s_FullStrengthColor;

@@ -80,22 +80,6 @@ namespace UnityEngine.Polybrush
 			}
 		}
 
-		private static Vector4 Color32ToVec4(Color32 color)
-		{
-			return new Vector4( color.r / 255f,
-								color.g / 255f,
-								color.b / 255f,
-								color.a / 255f );
-		}
-
-		private static Color32 Vec4ToColor32(Vector4 vec)
-		{
-			return new Color32( (byte) (255 * vec.x),
-								(byte) (255 * vec.y),
-								(byte) (255 * vec.z),
-								(byte) (255 * vec.w) );
-		}
-
         internal void SetChannelBaseTextureWeights(Dictionary<MeshChannel, List<int>> channelsToBaseTex, Dictionary<int, int> baseTexToMask, Dictionary<int, List<int>> maskToIndices)
         {
             foreach(var channelKvp in channelsToBaseTex)
@@ -155,8 +139,8 @@ namespace UnityEngine.Polybrush
 
 					case MeshChannel.Color:
 					{
-						Color32[] color = mesh.colors;
-						weights[kvp.Value] = color != null && color.Length == weightCount ? System.Array.ConvertAll(color, x => Color32ToVec4(x) ) : new Vector4[weightCount];
+						Color[] color = mesh.colors;
+						weights[kvp.Value] = color != null && color.Length == weightCount ? System.Array.ConvertAll(color, x => (Vector4)x ) : new Vector4[weightCount];
 					}
 					break;
 
@@ -314,7 +298,7 @@ namespace UnityEngine.Polybrush
 					case MeshChannel.Color:
 					{
 						// @todo consider storing Color array separate from Vec4 since this cast costs ~5ms
-						mesh.colors = System.Array.ConvertAll(weights[channelMap[al.channel]], x => Vec4ToColor32(x));
+						mesh.colors = System.Array.ConvertAll(weights[channelMap[al.channel]], x => (Color)x);
 						break;
 					}
 

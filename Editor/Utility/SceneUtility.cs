@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine.Polybrush;
 using UnityEditor.SettingsManagement;
 using System;
+using UnityEngine.Profiling;
 using Math = UnityEngine.Polybrush.Math;
 
 
@@ -15,7 +16,24 @@ namespace UnityEditor.Polybrush
         [UserSetting]
         internal static Pref<int> s_GIWorkflowMode = new Pref<int>("GI.WorkflowMode", (int)Lightmapping.giWorkflowMode, SettingsScope.Project);
 #pragma warning restore 618
-        
+
+        const string k_shaderPath = "/Content/ComputeShader/MeshRaycastCS.compute";
+        static ComputeShader m_RaycastShader;
+
+        public static ComputeShader raycastShader
+        {
+            get
+            {
+                if(m_RaycastShader == null)
+                    m_RaycastShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(PolyEditorUtility.RootFolder + k_shaderPath);
+
+                if(m_RaycastShader == null)
+                    Debug.LogWarning("Compute Shader not found at "+PolyEditorUtility.RootFolder + k_shaderPath);
+
+                return m_RaycastShader;
+            }
+        }
+
 		internal static Ray InverseTransformRay(this Transform transform, Ray InWorldRay)
 		{
 			Vector3 o = InWorldRay.origin;
@@ -28,8 +46,7 @@ namespace UnityEditor.Polybrush
         /// <summary>
         /// Find the nearest triangle intersected by InWorldRay on this mesh.  InWorldRay is in world space.
         /// @hit contains information about the hit point.  @distance limits how far from @InWorldRay.origin the hit
-        /// point may be.  @cullingMode determines what face orientations are tested (Culling.Front only tests front
-        /// faces, Culling.Back only tests back faces, and Culling.FrontBack tests both).
+        /// point may be. 
         /// Ray origin and position values are in local space.
         /// </summary>
         /// <param name="InWorldRay"></param>
@@ -38,10 +55,9 @@ namespace UnityEditor.Polybrush
         /// <param name="triangles"></param>
         /// <param name="hit"></param>
         /// <param name="distance"></param>
-        /// <param name="cullingMode"></param>
         /// <returns></returns>
-        internal static bool WorldRaycast(Ray InWorldRay, Transform transform, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity, Culling cullingMode = Culling.Front)
-		{
+        internal static bool WorldRaycast(Ray InWorldRay, Transform transform, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity)
+        {
             //null checks, must have a transform, vertices and triangles
             if(transform == null || vertices == null || triangles == null )
             {
@@ -49,37 +65,171 @@ namespace UnityEditor.Polybrush
                 return false;
             }
 
+            //empty checks for vertices and triangles
+            if(vertices.Length == 0 || triangles.Length == 0)
+            {
+                hit = null;
+                return false;
+            }
 
-			Ray ray = transform.InverseTransformRay(InWorldRay);
-			return MeshRaycast(ray, vertices, triangles, out hit, distance, cullingMode);
-		}
+            PolyMesh pmesh = new PolyMesh();
+            Mesh mesh = new Mesh();
+            mesh.name = "RaycastMesh";
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            pmesh.InitializeWithUnityMesh(mesh);
+
+            Ray ray = transform.InverseTransformRay(InWorldRay);
+            return MeshRaycast(ray, pmesh, out hit, distance);
+        }
+
+        /// <summary>
+        /// Find the nearest triangle intersected by InWorldRay on this mesh.  InWorldRay is in world space.
+        /// @hit contains information about the hit point.  @distance limits how far from @InWorldRay.origin the hit
+        /// point may be.
+        /// Ray origin and position values are in local space.
+        /// </summary>
+        /// <param name="InWorldRay"></param>
+        /// <param name="transform"></param>
+        /// <param name="mesh"></param>
+        /// <param name="hit"></param>
+        /// <param name="distance"></param>
+        /// <returns></returns>
+        internal static bool WorldRaycast(Ray InWorldRay, Transform transform, PolyMesh mesh, out PolyRaycastHit hit, float distance = Mathf.Infinity)
+        {
+            //null checks, must have a transform and a mesh
+            if(transform == null
+                || mesh == null
+                || mesh.vertexCount == 0
+                || mesh.GetTriangles().Length == 0)
+            {
+                hit = null;
+                return false;
+            }
+
+            Ray ray = transform.InverseTransformRay(InWorldRay);
+            return MeshRaycast(ray, mesh, out hit, distance);
+        }
 
         /// <summary>
         /// Cast a ray (in model space) against a mesh.
         /// </summary>
-        internal static bool MeshRaycast(Ray InRay, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity, Culling cullingMode = Culling.Front)
-		{
-			Vector3 hitNormal, vert0, vert1, vert2;
-			Vector3 origin = InRay.origin, direction = InRay.direction;
+        /// <param name="InRay"></param>
+        /// <param name="mesh"></param>
+        /// <param name="hit"></param>
+        /// <param name="distance"></param>
+        /// <returns></returns>
+        internal static bool MeshRaycast(Ray InRay, PolyMesh mesh, out PolyRaycastHit hit,
+            float distance = Mathf.Infinity)
+        {
+            Profiler.BeginSample("PolyBrush MeshRaycast");
 
             hit = new PolyRaycastHit(Mathf.Infinity,
-                                    Vector3.zero,
-                                    Vector3.zero,
-                                    -1);
+                Vector3.zero,
+                Vector3.zero,
+                -1);
+
+            if(SystemInfo.supportsComputeShaders)
+                return MeshRaycast_ComputeShader(InRay, mesh, out hit, distance);
+            else
+                return MeshRaycast_Legacy(InRay, mesh.vertices, mesh.GetTriangles(), out hit, distance);
+        }
+
+        /// <summary>
+        /// Cast a ray (in model space) against a mesh using compute shaders.
+        /// </summary>
+        internal static bool MeshRaycast_ComputeShader(Ray InRay, PolyMesh mesh, out PolyRaycastHit hit,
+            float distance = Mathf.Infinity)
+        {
+            hit = null;
+
+            int kernelIndex = raycastShader.FindKernel("MeshRaycastCS");
+
+            ComputeBuffer vertexBuffer = mesh.vertexBuffer;
+            ComputeBuffer triangleBuffer = mesh.triangleBuffer;
+
+            float[] hitDistances = new float[mesh.triangleBuffer.count/3];
+
+            ComputeBuffer resultBuffer = new ComputeBuffer(hitDistances.Length, sizeof(float));
+            resultBuffer.SetData(hitDistances);
+
+            if(raycastShader == null)
+            {
+                Profiler.EndSample();
+                return false;
+            }
+
+            raycastShader.SetBuffer(kernelIndex, "vertexBuffer", vertexBuffer);
+            raycastShader.SetBuffer(kernelIndex, "triangleBuffer", triangleBuffer);
+            raycastShader.SetBuffer(kernelIndex, "resultHits", resultBuffer);
+
+            raycastShader.SetVector("rayOrigin", InRay.origin);
+            raycastShader.SetVector("rayDirection", InRay.direction);
+
+            raycastShader.SetFloat("minDistance", Single.MaxValue);
+
+            uint threadGroupSize ;
+            raycastShader.GetKernelThreadGroupSizes(kernelIndex, out threadGroupSize, out _, out _);
+            raycastShader.Dispatch(kernelIndex, Mathf.CeilToInt((hitDistances.Length / threadGroupSize) + 1), 1, 1);
+
+            resultBuffer.GetData(hitDistances);
+            resultBuffer.Dispose();
+
+            int[] triangles = mesh.GetTriangles();
+            int triangleIndex = -1;
+            float minDistance = distance;
+            for(int i = 0; i < hitDistances.Length; i++)
+            {
+                if(hitDistances[i] < minDistance)
+                {
+                    triangleIndex = i;
+                    minDistance = hitDistances[i];
+                }
+            }
+
+            if(triangleIndex == -1)
+            {
+                Profiler.EndSample();
+                return false;
+            }
+
+            Vector3 vert0 = mesh.vertices[triangles[3 * triangleIndex]];
+            var v1 = mesh.vertices[triangles[3 * triangleIndex + 1]] - vert0;
+            var v2 = mesh.vertices[triangles[3 * triangleIndex + 2]] - vert0;
+            var normal = Vector3.Cross(v1, v2);
+
+            hit = new PolyRaycastHit(minDistance, InRay.GetPoint(minDistance), normal, triangleIndex);
+
+            Profiler.EndSample();
+			return hit.triangle > -1;
+		}
+
+        /// <summary>
+        /// Cast a ray (in model space) against a mesh without the use of compute shader (when the system does not support these).
+        /// </summary>
+        internal static bool MeshRaycast_Legacy(Ray InRay, Vector3[] vertices, int[] triangles, out PolyRaycastHit hit, float distance = Mathf.Infinity)
+        {
+            Vector3 hitNormal, vert0, vert1, vert2;
+            Vector3 origin = InRay.origin, direction = InRay.direction;
+
+            hit = new PolyRaycastHit(Mathf.Infinity,
+                Vector3.zero,
+                Vector3.zero,
+                -1);
 
             // Iterate faces, testing for nearest hit to ray origin.
             for (int CurTri = 0; CurTri < triangles.Length; CurTri += 3)
-			{
+            {
                 if (CurTri + 2 >= triangles.Length) continue;
                 if (triangles[CurTri + 2] >= vertices.Length) continue;
 
-				vert0 = vertices[triangles[CurTri+0]];
-				vert1 = vertices[triangles[CurTri+1]];
-				vert2 = vertices[triangles[CurTri+2]];
+                vert0 = vertices[triangles[CurTri+0]];
+                vert1 = vertices[triangles[CurTri+1]];
+                vert2 = vertices[triangles[CurTri+2]];
 
                 // Second pass, test intersection with triangle
                 if (Math.RayIntersectsTriangle2(origin, direction, vert0, vert1, vert2, out distance, out hitNormal))
-				{
+                {
                     if (distance < hit.distance)
                     {
                         hit.distance = distance;
@@ -88,10 +238,10 @@ namespace UnityEditor.Polybrush
                         hit.normal = hitNormal;
                     }
                 }
-			}
+            }
 
-			return hit.triangle > -1;
-		}
+            return hit.triangle > -1;
+        }
 
         /// <summary>
         /// Returns true if the event is one that should consume the mouse or keyboard.

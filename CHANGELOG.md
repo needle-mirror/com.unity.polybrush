@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2023-04-04
+
+### Bug Fixes
+
+- [case: POLBR-7] Fixed an issue where brushes would not paint correctly on dense meshes.
+- [case: POLBR-9] Fixed an issue where undo would not work with polybrush meshes. 
+- [case: POLBR-3] Fixed issue causing brushes to paint when navigating the scene using right mouse button.
+- [case: 1394848] Fixed preview mesh incorrectly truncating index buffer, resulting in broken mesh.
+- [case: POLBR-6] Fixed an issue where brushes would not work with meshes composed of very small triangles.
+
 ## [1.1.3] - 2022-02-16
 
 ### Features

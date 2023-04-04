@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Rendering;
 
 namespace UnityEngine.Polybrush
 {
@@ -58,6 +59,7 @@ namespace UnityEngine.Polybrush
 			dst.bindposes = src.bindposes;
 
 			dst.subMeshCount = src.subMeshCount;
+            dst.indexFormat = src.indexFormat;
 
 			for(int i = 0; i < src.subMeshCount; i++)
 				dst.SetIndices(src.GetIndices(i), src.GetTopology(i), i);
@@ -82,7 +84,8 @@ namespace UnityEngine.Polybrush
 			m.name = "Overlay Mesh: " + src.name;
 			m.vertices = src.vertices;
 			m.normals = src.normals;
-			m.colors = Util.Fill<Color>(new Color(0f, 0f, 0f, 0f), m.vertexCount);
+            m.colors = Util.Fill<Color>(new Color(0f, 0f, 0f, 0f), m.vertexCount);
+            m.indexFormat = src.vertexCount >= ushort.MaxValue ? IndexFormat.UInt32 : IndexFormat.UInt16;
 			m.subMeshCount = src.subMeshCount;
 
 			for(int i = 0; i < src.subMeshCount; i++)

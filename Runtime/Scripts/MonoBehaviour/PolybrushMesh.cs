@@ -233,7 +233,9 @@ namespace UnityEngine.Polybrush
             if (unityMesh == null)
                 return;
 
-            m_PolyMesh.InitializeWithUnityMesh(unityMesh);
+            if(m_PolyMesh.mesh != unityMesh)
+                m_PolyMesh.InitializeWithUnityMesh(unityMesh);
+
             SynchronizeWithMeshRenderer();
         }
 

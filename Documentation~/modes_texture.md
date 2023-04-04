@@ -114,9 +114,9 @@ The final fragment color is built using the following formula:
 ```c++
 // sample the texture
 fixed4 col1 = tex2D(_MainTex, i.uv);
-fixed4 col2 = tex2D(_Texture1, i.uv) * i.color.y;
-fixed4 col3 = tex2D(_Texture2, i.uv) * i.color.z;
-fixed4 col4 = tex2D(_Texture3, i.uv) * i.color.w;
+fixed4 col2 = tex2D(_Texture1, i.uv);
+fixed4 col3 = tex2D(_Texture2, i.uv);
+fixed4 col4 = tex2D(_Texture3, i.uv);
 
 fixed4 final_color = lerp(lerp(lerp(col1, col2, i.color.y), col3, i.color.z), col4, i.color.w);
 ```

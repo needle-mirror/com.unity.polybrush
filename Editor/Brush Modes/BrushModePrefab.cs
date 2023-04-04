@@ -268,7 +268,7 @@ namespace UnityEditor.Polybrush
                     rotationSetting.x = Random.Range(placementSettings.rotationRangeMin.x, placementSettings.rotationRangeMax.x);
                 if (placementSettings.yRotationBool)
                     rotationSetting.y = Random.Range(placementSettings.rotationRangeMin.y, placementSettings.rotationRangeMax.y);
-                if (placementSettings.xRotationBool)
+                if (placementSettings.zRotationBool)
                     rotationSetting.z = Random.Range(placementSettings.rotationRangeMin.z, placementSettings.rotationRangeMax.z);
 
 				Quaternion rotation = SceneView.lastActiveSceneView.in2DMode ?

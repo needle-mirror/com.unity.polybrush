@@ -597,11 +597,14 @@ namespace UnityEditor.Polybrush
 					//		OnBrushBeginApply
 					//		OnBrushApply
 					//		OnBrushFinishApply
-					if( EditorApplication.timeSinceStartup - m_LastBrushUpdate > GetTargetFramerate(brushTarget) )
+					if (EditorApplication.timeSinceStartup - m_LastBrushUpdate > GetTargetFramerate(brushTarget))
 					{
 						m_LastBrushUpdate = EditorApplication.timeSinceStartup;
 						UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
-                        ApplyBrush(Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
+                        // https://jira.unity3d.com/browse/POLBR-3
+                        // Not checking for active view tool as it's not switched yet when MouseDown is processed here
+                        if (e.button == 0)
+                            ApplyBrush(Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
 					}
 					break;
 

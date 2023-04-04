@@ -24,7 +24,7 @@ namespace UnityEditor.Polybrush
 										Color outerColor)
         {
             Vector3 p = matrix.MultiplyPoint3x4(point);
-            Vector3 n = matrix.inverse.MultiplyVector(normal);
+            Vector3 n = matrix.MultiplyVector(normal);
 
             DrawBrushDisc(p, n, brushSettings.radius, brushSettings.falloff, innerColor, outerColor);
 

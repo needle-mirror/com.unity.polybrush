@@ -218,7 +218,7 @@ namespace UnityEngine.Polybrush
 
             if (!polyMesh.IsValid() && mesh)
                 SetMesh(mesh);
-            else if (polyMesh.IsValid())
+            else if (polyMesh.IsValid() && (mesh == null || mesh.vertexCount != polyMesh.vertexCount))
                 SetMesh(polyMesh.ToUnityMesh());
 
             m_Initialized = true;
@@ -232,10 +232,7 @@ namespace UnityEngine.Polybrush
         {
             if (unityMesh == null)
                 return;
-
-            if(m_PolyMesh.mesh != unityMesh)
-                m_PolyMesh.InitializeWithUnityMesh(unityMesh);
-
+            m_PolyMesh.InitializeWithUnityMesh(unityMesh);
             SynchronizeWithMeshRenderer();
         }
 

@@ -249,7 +249,6 @@ namespace UnityEditor.Polybrush
 		{
 			return 	e.alt
 					|| Tools.current == Tool.View
-					|| GUIUtility.hotControl > 0
 					|| (e.isMouse ? e.button > 1 : false)
 					|| Tools.viewTool == ViewTool.FPS
 					|| Tools.viewTool == ViewTool.Orbit;
@@ -384,10 +383,15 @@ namespace UnityEditor.Polybrush
 
 			IEnumerable<string> matches = match.Where(x => x != null).Select(y => instanceNamingFunc(y));
 
-			return UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => {
-				return matches.Contains( x.name );
-				});
-		}
+#if UNITY_2020_3_OR_NEWER
+            return UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
+                .Where(x => matches.Contains(x.name));
+#else
+            return UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => {
+                return matches.Contains(x.name);
+            });
+#endif
+        }
 
         /// <summary>
         /// Store the previous GIWorkflowMode and set the current value to OnDemand (or leave it Legacy).

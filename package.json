@@ -1,7 +1,7 @@
 {
   "name": "com.unity.polybrush",
   "displayName": "Polybrush",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "unity": "2018.4",
   "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.",
   "keywords": [
@@ -32,18 +32,18 @@
     "com.unity.settings-manager": "2.0.1"
   },
   "relatedPackages": {
-    "com.unity.polybrush.tests": "1.1.5"
+    "com.unity.polybrush.tests": "1.1.6"
   },
   "_upm": {
-    "changelog": "### Bug Fixes\n\n- [case: POLBR-15] Fixed an issue that broke the application of Polybrush edits to ProBuilder meshes."
+    "changelog": "### Bug Fixes\n\n- [POLBR-16] Fixed a bug where the brush would deactivate on a MouseDrag event after a MouseDown event."
   },
   "upmCi": {
-    "footprint": "f5b8d27d8a9bb930743d38ef5938d6f1fbb482be"
+    "footprint": "d54f6660ec580692fe536aa26d7c314f4f1bc4bd"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.polybrush@1.1/manual/index.html",
   "repository": {
     "url": "https://github.com/Unity-Technologies/polybrush.git",
     "type": "git",
-    "revision": "b09a7e63c6351fe13e571a642864ee2944c6eb39"
+    "revision": "a125ca539427041169cff1eabaf6667f56e07609"
   }
 }

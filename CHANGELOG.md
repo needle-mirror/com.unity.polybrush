@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2024-02-13
+
+### Bug Fixes
+
+- [POLBR-16] Fixed a bug where the brush would deactivate on a MouseDrag event after a MouseDown event.
+
 ## [1.1.5] - 2023-08-01
 
 ### Bug Fixes

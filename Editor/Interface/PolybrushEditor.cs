@@ -563,21 +563,25 @@ namespace UnityEditor.Polybrush
 			if(brushSettings == null)
 				SetBrushSettings(PolyEditorUtility.GetFirstOrNew<BrushSettings>());
 
+            int controlID = GUIUtility.GetControlID(FocusType.Passive);
+
             if (PolySceneUtility.SceneViewInUse(e) || tool == BrushTool.None)
             {
                 // Force exit the current brush if user's mouse left
                 // the SceneView while a brush was still in use.
                 if (m_ApplyingBrush)
                     OnFinishApplyingBrush();
+
+                if (GUIUtility.hotControl == controlID)
+                    GUIUtility.hotControl = 0;
+
                 return;
             }
 
-			int controlID = GUIUtility.GetControlID(FocusType.Passive);
-
-			if( Util.IsValid(brushTarget) )
+			if (Util.IsValid(brushTarget))
 				HandleUtility.AddDefaultControl(controlID);
 
-			switch( e.GetTypeForControl(controlID) )
+			switch (e.GetTypeForControl(controlID))
 			{
 				case EventType.MouseMove:
 					// Handles:
@@ -603,16 +607,32 @@ namespace UnityEditor.Polybrush
 						UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
                         // https://jira.unity3d.com/browse/POLBR-3
                         // Not checking for active view tool as it's not switched yet when MouseDown is processed here
-                        if (e.button == 0)
-                            ApplyBrush(Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
-					}
-					break;
+
+                        if (e.type == EventType.MouseDown)
+                        {
+                            if (GUIUtility.hotControl == 0
+                                && HandleUtility.nearestControl == controlID
+                                && e.button == 0
+                                && ApplyBrush(Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel))
+                            {
+                                GUIUtility.hotControl = controlID;
+                            }
+                        }
+                        else
+                        {
+                            if (GUIUtility.hotControl == controlID && e.button == 0)
+                                ApplyBrush(Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
+                        }
+                    }
+                    break;
 
 				case EventType.MouseUp:
 					if(m_ApplyingBrush)
 					{
 						OnFinishApplyingBrush();
                         UpdateBrush(e.mousePosition, Event.current.control, Event.current.shift && Event.current.type != EventType.ScrollWheel);
+                        if (GUIUtility.hotControl == controlID)
+                            GUIUtility.hotControl = 0;
                     }
 					break;
 
@@ -966,10 +986,10 @@ namespace UnityEditor.Polybrush
         /// </summary>
         /// <param name="isUserHoldingControl"></param>
         /// <param name="isUserHoldingShift"></param>
-        internal void ApplyBrush(bool isUserHoldingControl, bool isUserHoldingShift)
+        internal bool ApplyBrush(bool isUserHoldingControl, bool isUserHoldingShift)
 		{
             if (!brushTarget.IsValid())
-				return;
+                return false;
 
             brushSettings.isUserHoldingControl = isUserHoldingControl;
             brushSettings.isUserHoldingShift = isUserHoldingShift;
@@ -990,6 +1010,8 @@ namespace UnityEditor.Polybrush
                 mode.OnBrushApply( secondaryBrushTarget, brushSettings);
 
 			DoRepaint();
+
+            return true;
 		}
 
 		void OnBrushBeginApply(BrushTarget brushTarget, BrushSettings settings)

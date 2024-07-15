@@ -674,11 +674,20 @@ namespace UnityEditor.Polybrush
 				target.graphicsMesh.UploadMeshData(false);
 			}
 
-            if(m_MainCacheTarget != null && data.CacheTarget.Equals(m_MainCacheTarget))
+            ClearCache(target);
+        }
+
+        void ClearCache(EditableObject target)
+        {
+            var data = m_EditableObjectsData[target];
+
+            if (m_MainCacheTarget != null && data != null && data.CacheTarget.Equals(m_MainCacheTarget))
                 m_MainCacheTarget = null;
 
             m_EditableObjectsData.Remove(target);
-		}
+            m_MeshAttributesContainer = null;
+            m_MeshAttributesContainers.Clear();
+        }
 
 		// Called every time the brush should apply itself to a valid target.  Default is on mouse move.
 		internal override void OnBrushApply(BrushTarget target, BrushSettings settings)

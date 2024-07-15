@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2024-07-15
+
+### Bug Fixes
+
+- [POLBR-22] Fixed compilation errors related to the use of FindObjectsByType in affected editors.
+
+## [1.1.7] - 2024-07-10
+
+### Bug Fixes
+
+- [POLBR-20] Fixed a bug where moving the brush to an object that doesn't support painting would cause NullReferenceException errors.
+
 ## [1.1.6] - 2024-02-13
 
 ### Bug Fixes

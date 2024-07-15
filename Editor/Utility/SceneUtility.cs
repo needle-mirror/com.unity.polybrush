@@ -383,7 +383,7 @@ namespace UnityEditor.Polybrush
 
 			IEnumerable<string> matches = match.Where(x => x != null).Select(y => instanceNamingFunc(y));
 
-#if UNITY_2020_3_OR_NEWER
+#if UNITY_2020_3 || UNITY_2021_3 || UNITY_2022_2_OR_NEWER
             return UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
                 .Where(x => matches.Contains(x.name));
 #else

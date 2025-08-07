@@ -118,8 +118,8 @@ namespace UnityEngine.Polybrush
         // How to scale the value when it's applied to the mesh
         [SerializeField] internal Vector2 range = new Vector2(0f, 1f);
 
-        [SerializeField] internal float min { get { return range.x; } set { range.x = value; } }
-        [SerializeField] internal float max { get { return range.y; } set { range.y = value; } }
+        internal float min { get { return range.x; } set { range.x = value; } }
+        internal float max { get { return range.y; } set { range.y = value; } }
 
         // The shader property that is controlled by this attribute.  If set to a valid
         // Texture2D property, that texture will be loaded and shown in the Texture Blend

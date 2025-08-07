@@ -18,7 +18,7 @@ Once your Mesh has the proper Material, you can paint and blend Textures on it:
 
 1. To customize the Texture tool, modify any of the options in the [Texture Paint Settings](#props) section, which are only available in this mode.
 2. Select the Mesh object you want to apply Textures to.
-3. Click the **Paint textures on meshes** (![](images/icons/Bricks.png)) icon in the Mode toolbar to activate the Texture mode.
+3. Click the **Paint textures on meshes** (![Paint texture icon](images/icons/Bricks.png)) icon in the Mode toolbar to activate the Texture mode.
 4. To customize the radius, falloff, and strength (intensity) of the brush, modify the properties under the [Brush Settings](brushes.md) section.
 5. To mirror the changes you are applying, set the axes and reference under the [Brush Mirroring](brush_mirror.md) section.
 6. Click on a Texture in one of the slots under the **Texture Paint Settings** section to select it.
@@ -37,7 +37,7 @@ Polybrush uses a combination of some or all of the `[ UV0, UV2, UV3, UV3, Color,
 
 ![Texture Paint Settings](images/TexturePaintSettings.png)
 
-![](images/icons/LetterA.png) Brush style toolbar. Click one of the following buttons to select the way you want Polybrush to apply the Textures:
+![A label](images/icons/LetterA.png) Brush style toolbar. Click one of the following buttons to select the way you want Polybrush to apply the Textures:
 
 | **Button application method** | **Description**                                              |
 | ----------------------------- | ------------------------------------------------------------ |
@@ -45,11 +45,11 @@ Polybrush uses a combination of some or all of the `[ UV0, UV2, UV3, UV3, Color,
 | **Fill**                      | Polybrush fills in triangles (faces), hard-edged.            |
 | **Flood**                     | Polybrush completely fills the Mesh.                         |
 
-![](images/icons/LetterB.png) Choose which Material to edit and paint from the **Material** drop-down menu if your Mesh has multiple Materials.
+![B label](images/icons/LetterB.png) Choose which Material to edit and paint from the **Material** drop-down menu if your Mesh has multiple Materials.
 
-![](images/icons/LetterC.png) Select the **Configure** button to [set the Textures on the Material](#config).
+![C label](images/icons/LetterC.png) Select the **Configure** button to [set the Textures on the Material](#config).
 
-![](images/icons/LetterD.png) Polybrush automatically detects what Textures are available for each Material and displays them as slots on a selection grid.  
+![D label](images/icons/LetterD.png) Polybrush automatically detects what Textures are available for each Material and displays them as slots on a selection grid.  
 
 To select a brush Texture to paint onto the Mesh object:
 

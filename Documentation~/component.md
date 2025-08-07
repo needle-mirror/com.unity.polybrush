@@ -2,7 +2,7 @@
 
 Polybrush adds the **Polybrush Mesh** component to the GameObject as soon as you select a Brush mode and hover over the Unity or ProBuilder Mesh.
 
-![](images/PolyBrushMeshComponent.png)
+![The Polybrush component in the Inspector window](images/PolyBrushMeshComponent.png)
 
 A Mesh is a list of vertices and faces that define the shape of the GameObject. The Polybrush Mesh component captures every change you make to the Mesh. This means that Polybrush can store extra data not saved in the standard Mesh object.
 
@@ -27,7 +27,7 @@ Select one of these options from the __Apply as__ drop-down menu:
 
 When you choose the **Additional Vertex Stream** option, the __Additional Vertex Streams__ reference property appears in the Inspector window of the Polybrush Mesh Component:
 
-![](images/PolyBrush-Mesh-Component.png) 
+![Additional Vertex Streams in the Inspector window](images/PolyBrush-Mesh-Component.png) 
 
 You can also choose one of these methods to use by default on all new Polybrush Mesh components with the [Use Additional Vertex Streams](prefs.md#avs) default preference. 
 
@@ -40,9 +40,6 @@ You can also choose one of these methods to use by default on all new Polybrush 
 You can save the Polybrush Mesh data to an external file, as a way to back up the changes you make. However, this file is not linked to the Polybrush Mesh data, so if you make changes after saving the file, you have to save the file again.
 
 When you click the __Export Mesh Asset__ button in the Polybrush component, a dialog appears where you can indicate where to save the new Mesh:
-
-![](images/Export-Mesh-Asset.png) 
-
 
 
 ## Removing the Polybrush Mesh component

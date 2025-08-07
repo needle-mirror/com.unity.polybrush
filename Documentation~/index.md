@@ -4,7 +4,7 @@ Polybrush is a Mesh painting, sculpting, and geo-scattering tool for **Unity 201
 
 > **Note:** Polybrush is not compatible with Terrains. If you would like to work on Terrains, use the [dedicated Terrain tool](https://docs.unity3d.com/Manual/terrain-UsingTerrains.html) instead.
 
-Polybrush provides five different [brush modes](modes.md) that define how a brush interacts with a Mesh. Some move vertices around, such as for [sculpting](modes_sculpt.md) (![](images/icons/Sculpt.png)) and [smoothing](modes_smooth.md) (![](images/icons/Smooth.png)) vertices. Others apply [colors](modes_color.md) (![](images/icons/Palette.png)) and [Textures](modes_texture.md) (![](images/icons/Bricks.png)) to vertices, and [scatter Prefabs](modes_prefab.md) (![](images/icons/FlowerAndGrass.png)) on the surface of your Mesh.
+Polybrush provides five different [brush modes](modes.md) that define how a brush interacts with a Mesh. Some move vertices around, such as for [sculpting](modes_sculpt.md) and [smoothing](modes_smooth.md) vertices. Others apply [colors](modes_color.md) and [Textures](modes_texture.md) to vertices, and [scatter Prefabs](modes_prefab.md) on the surface of your Mesh.
 
 
 
@@ -20,13 +20,13 @@ To access the **Polybrush** window:
 
 ![The Polybrush Interface](images/PolybrushPanel_Off_WithLetters.png)
 
-![](images/icons/LetterA.png) The **Mode toolbar** sets and displays the active [Brush Mode](modes.md). The [Polybrush window](index.md#interface) opens with no specific brush mode selected: only the [Brush Settings](brushes.md) and [Brush Mirroring](brush_mirror.md) sections appear until you click one of the buttons on the [Mode toolbar](modes.md).
+![A label](images/icons/LetterA.png) The **Mode toolbar** sets and displays the active [Brush Mode](modes.md). The [Polybrush window](index.md#interface) opens with no specific brush mode selected: only the [Brush Settings](brushes.md) and [Brush Mirroring](brush_mirror.md) sections appear until you click one of the buttons on the [Mode toolbar](modes.md).
 
-![](images/icons/LetterB.png) **Brush Settings** contains properties you can use to customize the [Radius](brushes.md#radius), [Falloff](brushes.md#falloff), [Strength/Opacity](brushes.md#strength), and [Falloff Curve](brushes.md#falloff-curve) of your brush tool. You can also use the [Brush Preset selector](brushes.md#brush-preset-selector) to save and load brushes that you frequently use.
+![B label](images/icons/LetterB.png) **Brush Settings** contains properties you can use to customize the [Radius](brushes.md#radius), [Falloff](brushes.md#falloff), [Strength/Opacity](brushes.md#strength), and [Falloff Curve](brushes.md#falloff-curve) of your brush tool. You can also use the [Brush Preset selector](brushes.md#brush-preset-selector) to save and load brushes that you frequently use.
 
-![](images/icons/LetterC.png) **Brush Mirroring** lets you choose which [Brush Mirroring](brush_mirror.md) method to use with the current brush.
+![C label](images/icons/LetterC.png) **Brush Mirroring** lets you choose which [Brush Mirroring](brush_mirror.md) method to use with the current brush.
 
-![](images/icons/LetterD.png) **Mode Settings** only appear when you activate a [Brush Mode](modes.md). These provide additional settings specific to the brush mode that is currently active. For example, in this image, the **Color Paint Settings** section appears because the Color brush mode is active.
+![D label](images/icons/LetterD.png) **Mode Settings** only appear when you activate a [Brush Mode](modes.md). These provide additional settings specific to the brush mode that is currently active. For example, in this image, the **Color Paint Settings** section appears because the Color brush mode is active.
 
 > **Tip:** To de-activate Polybrush, you can:
 >

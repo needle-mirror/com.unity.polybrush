@@ -37,7 +37,7 @@ namespace UnityEngine.Polybrush
         /// <param name="radius">The radius of the circle.</param>
         /// <param name="angleInDegrees">Where along the circle should the point be projected. Angle is in degrees.</param>
         /// <param name="origin"></param>
-        /// <returns></returns>
+        /// <returns>A point on the circumference of a circle.</returns>
         internal static Vector2 PointInCircumference(float radius, float angleInDegrees, Vector2 origin)
         {
             // Convert from degrees to radians via multiplication by PI/180
@@ -53,7 +53,7 @@ namespace UnityEngine.Polybrush
         /// <param name="radius"></param>
         /// <param name="latitudeAngle"></param>
         /// <param name="longitudeAngle"></param>
-        /// <returns></returns>
+        /// <returns>A point in the sphere.</returns>
         internal static Vector3 PointInSphere(float radius, float latitudeAngle, float longitudeAngle)
         {
             float x = (radius * Mathf.Cos(Mathf.Deg2Rad * latitudeAngle) * Mathf.Sin(Mathf.Deg2Rad * longitudeAngle));
@@ -82,7 +82,7 @@ namespace UnityEngine.Polybrush
         /// </summary>
         /// <param name="a">First point.</param>
         /// <param name="b">Second point.</param>
-        /// <returns></returns>
+        /// <returns>The squared distance.</returns>
         public static float SqrDistance(Vector3 a, Vector3 b)
         {
             float dx = b.x - a.x,
@@ -109,11 +109,11 @@ namespace UnityEngine.Polybrush
         }
 
         /// <summary>
-        /// Returns the Area of a polygon.
+        /// Returns the area of a polygon.
         /// </summary>
         /// <param name="vertices"></param>
         /// <param name="indexes"></param>
-        /// <returns></returns>
+        /// <returns>The area of a polygon.</returns>
         internal static float PolygonArea(Vector3[] vertices, int[] indexes)
         {
             float area = 0f;
@@ -130,7 +130,7 @@ namespace UnityEngine.Polybrush
         /// <param name="v">Vector2 original point.</param>
         /// <param name="origin">The pivot to rotate around.</param>
         /// <param name="theta">How far to rotate in degrees.</param>
-        /// <returns></returns>
+        /// <returns>A Vector2 position that has been rotated around the origin point.</returns>
         internal static Vector2 RotateAroundPoint(this Vector2 v, Vector2 origin, float theta)
         {
             float cx = origin.x, cy = origin.y; // origin
@@ -157,10 +157,10 @@ namespace UnityEngine.Polybrush
         /// <summary>
         /// Scales a Vector2 using origin as the pivot point.
         /// </summary>
-        /// <param name="v"></param>
-        /// <param name="origin"></param>
-        /// <param name="scale"></param>
-        /// <returns></returns>
+        /// <param name="v">Vector2 original point.</param>
+        /// <param name="origin">The pivot to scale from.</param>
+        /// <param name="scale">Vector2 representing the scale factor for the X and Y axes.</param>
+        /// <returns>A Vector2 position that has been scaled around the origin point.</returns>
         public static Vector2 ScaleAroundPoint(this Vector2 v, Vector2 origin, Vector2 scale)
         {
             Vector2 tp = v - origin;
@@ -257,7 +257,7 @@ namespace UnityEngine.Polybrush
         /// </summary>
         /// <param name="a">First ray.</param>
         /// <param name="b">Second ray.</param>
-        /// <returns></returns>
+        /// <returns>The nearest point between the given rays.</returns>
         public static Vector3 GetNearestPointRayRay(Ray a, Ray b)
         {
             return GetNearestPointRayRay(a.origin, a.direction, b.origin, b.direction);
@@ -306,13 +306,13 @@ namespace UnityEngine.Polybrush
         }
 
         /// <summary>
-        /// True or false lines, do lines intersect.
+        /// Determines if two line segments intersect in 2D space.
         /// </summary>
-        /// <param name="p0"></param>
-        /// <param name="p1"></param>
-        /// <param name="p2"></param>
-        /// <param name="p3"></param>
-        /// <returns></returns>
+        /// <param name="p0">The starting point of the first line segment.</param>
+        /// <param name="p1">The ending point of the first line segment.</param>
+        /// <param name="p2">The starting point of the second line segment.</param>
+        /// <param name="p3">The ending point of the second line segment.</param>
+        /// <returns>True if the line segments intersect; otherwise, false.</returns>
         internal static bool GetLineSegmentIntersect(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3)
         {
             Vector2 s1, s2;
@@ -333,7 +333,7 @@ namespace UnityEngine.Polybrush
         /// http://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
         /// http://www.cs.virginia.edu/~gfx/Courses/2003/ImageSynthesis/papers/Acceleration/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
         /// </remarks>
-        /// <param name="InRay"></param>
+        /// <param name="InRay">The given ray.</param>
         /// <param name="InTriangleA">First vertex position in the triangle.</param>
         /// <param name="InTriangleB">Second vertex position in the triangle.</param>
         /// <param name="InTriangleC">Third vertex position in the triangle.</param>
@@ -478,7 +478,7 @@ namespace UnityEngine.Polybrush
         /// <param name="p0">First point of the triangle.</param>
         /// <param name="p1">Second point of the triangle.</param>
         /// <param name="p2">Third point of the triangle.</param>
-        /// <returns></returns>
+        /// <returns>The normalized (unit length) normal vector of the triangle's surface.</returns>
         public static Vector3 Normal(Vector3 p0, Vector3 p1, Vector3 p2)
         {
             float   ax = p1.x - p0.x,

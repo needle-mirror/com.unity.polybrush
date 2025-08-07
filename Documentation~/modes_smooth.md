@@ -9,7 +9,7 @@ After sculpting your Mesh, you might need to smooth out hard edges to give it a 
 To use the Smooth tool:
 
 1. Select the Mesh object you want to smooth.
-2. Click the **Smooth mesh geometry** ![](images/icons/Smooth.png) icon in the Mode toolbar to activate Smooth mode.
+2. Click the **Smooth mesh geometry** ![Smooth icon](images/icons/Smooth.png) icon in the Mode toolbar to activate Smooth mode.
 3. To customize the radius, falloff, and strength (intensity) of the brush, modify the properties in the [Brush Settings](brushes.md) section.
 4. To mirror the changes you are applying, set the axes and reference in the [Brush Mirroring](brush_mirror.md) section.
 5. To customize the Smooth tool, modify any of the options in the [Smooth Settings](#props) section, which are only available in this mode.
@@ -23,13 +23,13 @@ To use the Smooth tool:
 
 ![Smooth Settings](images/SmoothSettings.png)
 
-![](images/icons/LetterA.png) When the **Ignore Open Edges** property is enabled, Polybrush ignores any vertices on the edge of the Mesh. This is enabled by default.
+![A label](images/icons/LetterA.png) When the **Ignore Open Edges** property is enabled, Polybrush ignores any vertices on the edge of the Mesh. This is enabled by default.
 
 Disable this property if you want Polybrush to modify all vertices within the radius of the brush. The following image demonstrates the difference:
 
 ![Left: Ignore Open Edges ON / Right: Ignore Open Edges OFF](images/ignoreEdges.png)
 
-![](images/icons/LetterB.png) Choose how to push or pull the vertices under the brush from the **Direction** drop-down menu. You can choose from these options:
+![B label](images/icons/LetterB.png) Choose how to push or pull the vertices under the brush from the **Direction** drop-down menu. You can choose from these options:
 
 | **Value**         | **Description**                                              |
 | ----------------- | ------------------------------------------------------------ |

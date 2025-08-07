@@ -685,8 +685,6 @@ namespace UnityEditor.Polybrush
                 m_MainCacheTarget = null;
 
             m_EditableObjectsData.Remove(target);
-            m_MeshAttributesContainer = null;
-            m_MeshAttributesContainers.Clear();
         }
 
 		// Called every time the brush should apply itself to a valid target.  Default is on mouse move.
@@ -821,12 +819,14 @@ namespace UnityEditor.Polybrush
 
         void RebuildColorTargets(EditableObject target, SplatWeight blend, float strength)
         {
-            if(target == null)
+            if (target == null)
                 return;
 
             var data = m_EditableObjectsData[target];
-
             if (blend == null || data.SplatCache == null || data.SplatTarget == null)
+                return;
+
+            if (meshAttributes == null)
                 return;
 
             m_MinWeights = data.SplatTarget.GetMinWeights();

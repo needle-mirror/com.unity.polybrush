@@ -33,6 +33,8 @@ namespace UnityEngine.Polybrush
         internal List<Vector4> uv2 = null;
         [SerializeField]
         internal List<Vector4> uv3 = null;
+        [SerializeField]
+        internal List<(string name, float weight, Vector3[] vertices, Vector3[] normals, Vector3[] tangents)> blendShapeFrames = null;
 
         [SerializeField]
 		int[] m_Triangles = null;
@@ -284,6 +286,15 @@ namespace UnityEngine.Polybrush
                     mesh.SetIndices(m_SubMeshes[i].indexes, m_SubMeshes[i].topology, i);
 
                 RefreshTriangles();
+
+                if (blendShapeFrames?.Count > 0)
+                {
+                    mesh.ClearBlendShapes();
+                    foreach (var shapeFrame in blendShapeFrames)
+                    {
+                        mesh.AddBlendShapeFrame(shapeFrame.name, shapeFrame.weight, shapeFrame.vertices, shapeFrame.normals, shapeFrame.tangents);
+                    }
+                }
 			}
 			else
 			{
@@ -320,6 +331,30 @@ namespace UnityEngine.Polybrush
                 {
                     SetSubMeshes(mesh);
                     RefreshTriangles();
+                }
+
+                int blendShapeCount = mesh.blendShapeCount;
+                if (blendShapeCount > 0)
+                {
+                    if (blendShapeFrames == null)
+                        blendShapeFrames = new List<(string name, float weight, Vector3[] vertices, Vector3[] normals, Vector3[] tangents)>();
+                    blendShapeFrames.Clear();
+                    blendShapeFrames.Capacity = blendShapeCount;
+
+                    for (var i = 0; i < blendShapeCount; ++i)
+                    {
+                        var shapeName = mesh.GetBlendShapeName(i);
+                        var fcount = mesh.GetBlendShapeFrameCount(i);
+                        for (var j = 0; j < fcount; ++j)
+                        {
+                            var fweight = mesh.GetBlendShapeFrameWeight(i, j);
+                            var dverts = new Vector3[mesh.vertexCount];
+                            var dnorms = new Vector3[mesh.vertexCount];
+                            var dtans = new Vector3[mesh.vertexCount];
+                            mesh.GetBlendShapeFrameVertices(i, j, dverts, dnorms, dtans);
+                            blendShapeFrames.Add((shapeName, fweight, dverts, dnorms, dtans));
+                        }
+                    }
                 }
             }
             else

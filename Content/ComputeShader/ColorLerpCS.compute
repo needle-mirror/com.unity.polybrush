@@ -7,10 +7,12 @@ StructuredBuffer<float4> originalColorBuffer;
 StructuredBuffer<float4> lerpColorBuffer;
 
 float4 mask;
+uint numVerts;
 
 [numthreads(512,1,1)]
 void ColorLerpKernel (uint id : SV_DispatchThreadID)
 {
+    if (id >= numVerts) return;
     float r = originalColorBuffer[id].x;
     float g = originalColorBuffer[id].y;
     float b = originalColorBuffer[id].z;

@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Texture painting and blending
 
 Use the **Texture** tool to paint and blend multiple Textures on Meshes. 

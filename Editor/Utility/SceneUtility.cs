@@ -163,6 +163,8 @@ namespace UnityEditor.Polybrush
             raycastShader.SetFloat("epsilon", Mathf.Epsilon);
             raycastShader.SetFloat("infinityValue", k_maxCSIntersectionDist);
 
+            raycastShader.SetInt("rayCount", hitDistances.Length);
+
             uint threadGroupSize ;
             raycastShader.GetKernelThreadGroupSizes(kernelIndex, out threadGroupSize, out _, out _);
             raycastShader.Dispatch(kernelIndex, Mathf.CeilToInt((hitDistances.Length / threadGroupSize) + 1), 1, 1);

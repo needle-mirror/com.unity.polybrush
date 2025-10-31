@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # About Polybrush
 
 Polybrush is a Mesh painting, sculpting, and geo-scattering tool for **Unity 2018.3 and later**.

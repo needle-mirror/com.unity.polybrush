@@ -9,10 +9,12 @@ float4 rayDirection;
 
 float epsilon;
 float infinityValue;
+uint rayCount;
 
 [numthreads(512,1,1)]
 void MeshRaycastCS (uint id : SV_DispatchThreadID)
 {
+    if (id >= rayCount) return;
     resultHits[id] = infinityValue;
 
     float3 vert0 = vertexBuffer[triangleBuffer[3*id]];

@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Smoothing vertices
 
 The **Smooth** tool averages the differences between vertex positions along an axis, which is set by the **Direction** property in [Smooth Settings](#props).  Use this mode to make jagged vertices on the Mesh more uniform.
@@ -9,7 +13,7 @@ After sculpting your Mesh, you might need to smooth out hard edges to give it a 
 To use the Smooth tool:
 
 1. Select the Mesh object you want to smooth.
-2. Click the **Smooth mesh geometry** ![Smooth icon](images/icons/Smooth.png) icon in the Mode toolbar to activate Smooth mode.
+2. Click the **Smooth mesh geometry**Â ![Smooth icon](images/icons/Smooth.png) icon in the Mode toolbar to activate Smooth mode.
 3. To customize the radius, falloff, and strength (intensity) of the brush, modify the properties in the [Brush Settings](brushes.md) section.
 4. To mirror the changes you are applying, set the axes and reference in the [Brush Mirroring](brush_mirror.md) section.
 5. To customize the Smooth tool, modify any of the options in the [Smooth Settings](#props) section, which are only available in this mode.

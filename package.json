@@ -1,7 +1,7 @@
 {
   "name": "com.unity.polybrush",
   "displayName": "Polybrush",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "unity": "2022.3",
   "description": "Mesh painting, sculpting, and geo-scattering tool for Unity.",
   "keywords": [
@@ -33,18 +33,18 @@
     "com.unity.modules.imgui": "1.0.0"
   },
   "relatedPackages": {
-    "com.unity.polybrush.tests": "1.2.0"
+    "com.unity.polybrush.tests": "1.2.1"
   },
   "_upm": {
-    "changelog": "### Changes\n\n- Updated minimum Unity version to 2022.3.\n- Added missing public API documentation for Math.\n\n### Bug fixes\n\n- [POLBR-30] Fixed an issue which would create unwanted files and folders in unrelated packages that contained Texture2d assets.\n- [POLBR-25] Fixed an issue where the texture list would disappear.\n- [POLBR-24] Fixed an issue where the texture brush painted incorrectly along the borders of a mesh when applying textures to multiple GameObjects.\n- Fixed an issue where blend shape frames for meshes are not transferred to the generated PolyMesh and then transferred back to the exported Unity mesh."
+    "changelog": "- [POLBR-28] Fixed an issue with compute-based raycasting and compute-based vertex color lerping that would write to VRAM outside the bounds of the destination stuctured buffer, which would lead to VRAM corruption, incorrect mesh rendering, and other graphical issues on Metal."
   },
   "upmCi": {
-    "footprint": "6aff99a7f36805f8eed23a7d3535316bc85f5750"
+    "footprint": "d96564cc721d63d9b522fd8d083f7c98c2b79788"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.polybrush@1.2/manual/index.html",
   "repository": {
     "url": "https://github.com/Unity-Technologies/polybrush.git",
     "type": "git",
-    "revision": "f7d8c5d7be178edfeeec64e0bcbd58347d819a6a"
+    "revision": "8f4771ff86abcb13317c6cd9f0808aa27b950647"
   }
 }

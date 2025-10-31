@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Painting Colors on a Mesh
 
 Use the Paint mode to set the vertex colors on a Mesh with a brush or a paint bucket.  You can use the toolbar under the [Color Paint Settings](#props) section to choose **Brush**, **Fill**, or **Flood**.

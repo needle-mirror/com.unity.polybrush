@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Menu options
 
 The Polybrush menu is available from the main Unity **Tools** menu and provides access to most of the Polybrush features.

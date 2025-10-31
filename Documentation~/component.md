@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Polybrush Mesh component
 
 Polybrush adds the **Polybrush Mesh** component to the GameObject as soon as you select a Brush mode and hover over the Unity or ProBuilder Mesh.

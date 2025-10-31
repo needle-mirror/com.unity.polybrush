@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Using Polybrush modes
 
 Polybrush provides five brush modes that perform different tasks. They all use the same basic brush settings and mirroring options:

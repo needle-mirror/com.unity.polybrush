@@ -167,18 +167,18 @@ namespace UnityEditor.Polybrush
 
         //Compute Shader variables
         const string k_ShaderPath = "/Content/ComputeShader/ColorLerpCS.compute";
-        ComputeShader m_ColorLerpShader;
-        ComputeShader colorLerpShader
+        static ComputeShader s_ColorLerpShader;
+        internal static ComputeShader colorLerpShader
         {
             get
             {
-                if(m_ColorLerpShader == null)
-                    m_ColorLerpShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(PolyEditorUtility.RootFolder + k_ShaderPath);
+                if(s_ColorLerpShader == null)
+                    s_ColorLerpShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(PolyEditorUtility.RootFolder + k_ShaderPath);
 
-                if(m_ColorLerpShader == null)
+                if(s_ColorLerpShader == null)
                     Debug.LogWarning("Compute Shader not found at "+PolyEditorUtility.RootFolder + k_ShaderPath);
 
-                return m_ColorLerpShader;
+                return s_ColorLerpShader;
             }
         }
 
@@ -426,9 +426,10 @@ namespace UnityEditor.Polybrush
 
                 default:
                 {
-                    if(SystemInfo.supportsComputeShaders && colorLerpShader != null)
+                    var cs = colorLerpShader;
+                    if(SystemInfo.supportsComputeShaders && cs != null)
                     {
-                        int kernelIndex = colorLerpShader.FindKernel("ColorLerpKernel");
+                        int kernelIndex = cs.FindKernel("ColorLerpKernel");
 
                         ComputeBuffer originalColorsBuffer = data.MeshVertexColors.OriginalColorsBuffer;
                         ComputeBuffer lerpColorsBuffer = data.MeshVertexColors.TargetColorsBuffer;
@@ -441,17 +442,18 @@ namespace UnityEditor.Polybrush
                         ComputeBuffer resultColorsBuffer = data.MeshVertexColors.ColorsBuffer;
                         resultColorsBuffer.SetData(vertexColorInfo.Colors);
 
-                        colorLerpShader.SetBuffer(kernelIndex, "originalColorBuffer", originalColorsBuffer);
-                        colorLerpShader.SetBuffer(kernelIndex, "lerpColorBuffer", lerpColorsBuffer);
-                        colorLerpShader.SetBuffer(kernelIndex, "weightBuffer", weightsBuffer);
-                        colorLerpShader.SetBuffer(kernelIndex, "resultColors", resultColorsBuffer);
+                        cs.SetBuffer(kernelIndex, "originalColorBuffer", originalColorsBuffer);
+                        cs.SetBuffer(kernelIndex, "lerpColorBuffer", lerpColorsBuffer);
+                        cs.SetBuffer(kernelIndex, "weightBuffer", weightsBuffer);
+                        cs.SetBuffer(kernelIndex, "resultColors", resultColorsBuffer);
 
                         Vector4 maskVect = new Vector4(mask.r ? 1 : 0,mask.g ? 1 : 0, mask.b ? 1 : 0, mask.a ? 1 : 0);
-                        colorLerpShader.SetVector("mask",maskVect);
+                        cs.SetVector("mask",maskVect);
+                        cs.SetInt("numVerts", vertexCount);
 
                         uint threadGroupSize;
-                        colorLerpShader.GetKernelThreadGroupSizes(kernelIndex, out threadGroupSize, out _, out _);
-                        colorLerpShader.Dispatch(kernelIndex, Mathf.CeilToInt(( resultColorsBuffer.count / threadGroupSize ) + 1), 1, 1);
+                        cs.GetKernelThreadGroupSizes(kernelIndex, out threadGroupSize, out _, out _);
+                        cs.Dispatch(kernelIndex, Mathf.CeilToInt(( resultColorsBuffer.count / threadGroupSize ) + 1), 1, 1);
 
                         resultColorsBuffer.GetData(vertexColorInfo.Colors);
                     }

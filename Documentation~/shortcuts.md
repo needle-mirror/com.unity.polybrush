@@ -1,3 +1,7 @@
+<div style="background: #ffe2d7; padding: 16px; border-radius: 4px; margin: 16px 0;">
+    The Polybrush package is deprecated and no longer supported in Unity 6.3 (6000.3) and later.
+</div>
+
 # Keyboard shortcuts
 
 You can use keyboard shortcuts to access or refine many of the tool actions that are available with the Polybrush package. 
